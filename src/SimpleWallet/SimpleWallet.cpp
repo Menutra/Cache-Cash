@@ -857,48 +857,47 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::new_wallet(Crypto::SecretKey &secret_key, Crypto::SecretKey &view_key, const std::string &wallet_file, const std::string& password) {
-                m_wallet_file = wallet_file;
+  m_wallet_file = wallet_file;
 
-                m_wallet.reset(new WalletLegacy(m_currency, *m_node.get(), logManager));
-                m_node->addObserver(static_cast<INodeObserver*>(this));
-                m_wallet->addObserver(this);
-                try {
-                  m_initResultPromise.reset(new std::promise<std::error_code>());
-                  std::future<std::error_code> f_initError = m_initResultPromise->get_future();
+  m_wallet.reset(new WalletLegacy(m_currency, *m_node.get(), logManager));
+  m_node->addObserver(static_cast<INodeObserver*>(this));
+  m_wallet->addObserver(this);
+  try {
+    m_initResultPromise.reset(new std::promise<std::error_code>());
+    std::future<std::error_code> f_initError = m_initResultPromise->get_future();
 
-                  AccountKeys wallet_keys;
-                  wallet_keys.spendSecretKey = secret_key;
-                  wallet_keys.viewSecretKey = view_key;
-                  Crypto::secret_key_to_public_key(wallet_keys.spendSecretKey, wallet_keys.address.spendPublicKey);
-                  Crypto::secret_key_to_public_key(wallet_keys.viewSecretKey, wallet_keys.address.viewPublicKey);
+    AccountKeys wallet_keys;
+    wallet_keys.spendSecretKey = secret_key;
+    wallet_keys.viewSecretKey = view_key;
+    Crypto::secret_key_to_public_key(wallet_keys.spendSecretKey, wallet_keys.address.spendPublicKey);
+    Crypto::secret_key_to_public_key(wallet_keys.viewSecretKey, wallet_keys.address.viewPublicKey);
 
-                  m_wallet->initWithKeys(wallet_keys, password);
-                  auto initError = f_initError.get();
-                  m_initResultPromise.reset(nullptr);
-                  if (initError) {
-                    fail_msg_writer() << "failed to generate new wallet: " << initError.message();
-                    return false;
-                  }
+    m_wallet->initWithKeys(wallet_keys, password);
+    auto initError = f_initError.get();
+    m_initResultPromise.reset(nullptr);
+    if (initError) {
+      fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+      return false;
+    }
 
-                  try {
-                    CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
-                  } catch (std::exception& e) {
-                    fail_msg_writer() << "failed to save new wallet: " << e.what();
-                    throw;
-                  }
+    try {
+      CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
+    } catch (std::exception& e) {
+      fail_msg_writer() << "failed to save new wallet: " << e.what();
+      throw;
+    }
 
-                  AccountKeys keys;
-                  m_wallet->getAccountKeys(keys);
+    AccountKeys keys;
+    m_wallet->getAccountKeys(keys);
 
-                  logger(INFO, BRIGHT_WHITE) <<
-                    "Imported wallet: " << m_wallet->getAddress() << std::endl;
-                }
-                catch (const std::exception& e) {
-                  fail_msg_writer() << "failed to import wallet: " << e.what();
-                  return false;
-                }
+    logger(INFO, BRIGHT_WHITE) <<
+    "Imported wallet: " << m_wallet->getAddress() << std::endl;
+  } catch (const std::exception& e) {
+    fail_msg_writer() << "failed to import wallet: " << e.what();
+    return false;
+  }
 
-                success_msg_writer() <<
+  success_msg_writer() <<
                   "**********************************************************************\n" <<
                   "Your wallet has been imported.\n" <<
                   "Use \"help\" command to see the list of available commands.\n" <<
@@ -906,8 +905,8 @@ bool simple_wallet::new_wallet(Crypto::SecretKey &secret_key, Crypto::SecretKey 
                   "current session's state. Otherwise, you will possibly need to synchronize \n" <<
                   "your wallet again. Your wallet key is NOT under risk anyway.\n" <<
                   "**********************************************************************";
-                return true;
-                }
+  return true;
+}
 
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::close_wallet()
@@ -953,75 +952,6 @@ bool simple_wallet::reset(const std::vector<std::string> &args) {
   }
 
   std::cout << std::endl;
-
-  return true;
-}
-
-bool simple_wallet::start_mining(const std::vector<std::string>& args) {
-  COMMAND_RPC_START_MINING::request req;
-  req.miner_address = m_wallet->getAddress();
-
-  bool ok = true;
-  size_t max_mining_threads_count = (std::max)(std::thread::hardware_concurrency(), static_cast<unsigned>(2));
-  if (0 == args.size()) {
-    req.threads_count = 1;
-  } else if (1 == args.size()) {
-    uint16_t num = 1;
-    ok = Common::fromString(args[0], num);
-    ok = ok && (1 <= num && num <= max_mining_threads_count);
-    req.threads_count = num;
-  } else {
-    ok = false;
-  }
-
-  if (!ok) {
-    fail_msg_writer() << "invalid arguments. Please use start_mining [<number_of_threads>], " <<
-      "<number_of_threads> should be from 1 to " << max_mining_threads_count;
-    return true;
-  }
-
-
-  COMMAND_RPC_START_MINING::response res;
-
-  try {
-    HttpClient httpClient(m_dispatcher, m_daemon_host, m_daemon_port);
-
-    invokeJsonCommand(httpClient, "/start_mining", req, res);
-
-    std::string err = interpret_rpc_response(true, res.status);
-    if (err.empty())
-      success_msg_writer() << "Mining started in daemon";
-    else
-      fail_msg_writer() << "mining has NOT been started: " << err;
-
-  } catch (const ConnectException&) {
-    printConnectionError();
-  } catch (const std::exception& e) {
-    fail_msg_writer() << "Failed to invoke rpc method: " << e.what();
-  }
-
-  return true;
-}
-//----------------------------------------------------------------------------------------------------
-bool simple_wallet::stop_mining(const std::vector<std::string>& args)
-{
-  COMMAND_RPC_STOP_MINING::request req;
-  COMMAND_RPC_STOP_MINING::response res;
-
-  try {
-    HttpClient httpClient(m_dispatcher, m_daemon_host, m_daemon_port);
-
-    invokeJsonCommand(httpClient, "/stop_mining", req, res);
-    std::string err = interpret_rpc_response(true, res.status);
-    if (err.empty())
-      success_msg_writer() << "Mining stopped in daemon";
-    else
-      fail_msg_writer() << "mining has NOT been stopped: " << err;
-  } catch (const ConnectException&) {
-    printConnectionError();
-  } catch (const std::exception& e) {
-    fail_msg_writer() << "Failed to invoke rpc method: " << e.what();
-  }
 
   return true;
 }

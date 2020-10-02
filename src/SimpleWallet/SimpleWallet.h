@@ -77,9 +77,7 @@ namespace CryptoNote
 
     bool help(const std::vector<std::string> &args = std::vector<std::string>());
     bool exit(const std::vector<std::string> &args);
-    bool start_mining(const std::vector<std::string> &args);
     bool show_dust(const std::vector<std::string> &args);
-    bool stop_mining(const std::vector<std::string> &args);
     bool show_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool sign_message(const std::vector<std::string> &args);
     bool verify_signature(const std::vector<std::string> &args);
