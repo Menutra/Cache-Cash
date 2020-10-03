@@ -277,6 +277,7 @@ struct COMMAND_RPC_GET_INFO {
     uint64_t last_block_reward;
     uint64_t last_block_timestamp;
     uint64_t last_block_difficulty;
+    uint64_t start_time;
     std::vector<std::string> connections;
 
     void serialize(ISerializer &s) {
@@ -301,7 +302,8 @@ struct COMMAND_RPC_GET_INFO {
       KV_MEMBER(last_block_reward)
       KV_MEMBER(last_block_timestamp)
       KV_MEMBER(last_block_difficulty)
-      KV_MEMBER(connections)      
+      KV_MEMBER(connections)
+      KV_MEMBER(start_time)  
     }
   };
 };
