@@ -30,6 +30,7 @@ public:
   bool k_on_check_reserve_proof(const K_COMMAND_RPC_CHECK_RESERVE_PROOF::request& req, K_COMMAND_RPC_CHECK_RESERVE_PROOF::response& res);  
   bool enableCors(const std::string domain);  
   bool remotenode_check_incoming_tx(const BinaryArray& tx_blob);
+  bool setNodeInfo(const std::string& nodeInfo);
 
 private:
 
@@ -92,7 +93,8 @@ private:
   std::string m_cors_domain;
   std::string m_fee_address;
   Crypto::SecretKey m_view_key = NULL_SECRET_KEY;
-  AccountPublicAddress m_fee_acc; 
+  AccountPublicAddress m_fee_acc;
+  std::string m_node_info;
 };
 
 }

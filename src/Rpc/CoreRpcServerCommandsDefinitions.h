@@ -258,6 +258,7 @@ struct COMMAND_RPC_GET_INFO {
   struct response {
     std::string status;
     std::string version;
+    std::string node_info;
     std::string fee_address;
     std::string top_block_hash;
     uint64_t height;
@@ -282,6 +283,7 @@ struct COMMAND_RPC_GET_INFO {
       KV_MEMBER(status)
       KV_MEMBER(height)
       KV_MEMBER(version)
+      KV_MEMBER(node_info)
       KV_MEMBER(difficulty)
       KV_MEMBER(top_block_hash)
       KV_MEMBER(tx_count)

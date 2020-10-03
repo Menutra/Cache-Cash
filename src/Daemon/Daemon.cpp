@@ -46,6 +46,7 @@ namespace
   const command_line::arg_descriptor<std::string> arg_config_file = {"config-file", "Specify configuration file", std::string(CryptoNote::PROJECT_NAME) + ".conf"};
   const command_line::arg_descriptor<bool>        arg_os_version  = {"os-version", ""};
   const command_line::arg_descriptor<std::string> arg_log_file    = {"log-file", "", ""};
+  const command_line::arg_descriptor<std::string> arg_set_node_id = { "node-id", "If you're setting your daemon to become a public node then setting an ID is recommended", "" };
   const command_line::arg_descriptor<std::string> arg_set_fee_address = { "fee-address", "Set a fee address for remote nodes", "" };
   const command_line::arg_descriptor<std::string> arg_set_view_key = { "view-key", "Set secret view-key for remote node fee confirmation", "" };
   const command_line::arg_descriptor<int>         arg_log_level   = {"log-level", "", 2}; // info level
@@ -112,6 +113,7 @@ int main(int argc, char* argv[])
     command_line::add_arg(desc_cmd_only, arg_os_version);
     command_line::add_arg(desc_cmd_only, command_line::arg_data_dir, Tools::getDefaultDataDirectory());
     command_line::add_arg(desc_cmd_only, arg_config_file);
+    command_line::add_arg(desc_cmd_sett, arg_set_node_id);
 	  command_line::add_arg(desc_cmd_sett, arg_set_fee_address);
     command_line::add_arg(desc_cmd_sett, arg_log_file);
     command_line::add_arg(desc_cmd_sett, arg_log_level);
@@ -231,7 +233,7 @@ int main(int argc, char* argv[])
       }
     }
 
-     CoreConfig coreConfig;
+    CoreConfig coreConfig;
     coreConfig.init(vm);
     NetNodeConfig netNodeConfig;
     netNodeConfig.init(vm);
@@ -285,7 +287,18 @@ int main(int argc, char* argv[])
     }
 
     logger(INFO) << "Starting core rpc server on address " << rpcConfig.getBindAddress();
-  
+    
+    std::string id_str = command_line::get_arg(vm, arg_set_node_id);
+    if (!id_str.empty() && id_str.size() > 128) {
+      logger(ERROR, BRIGHT_RED) << "Too long contact info";
+      return 1;
+    }
+    if (command_line::has_arg(vm, arg_set_node_id)) {
+      if (!id_str.empty()) {
+        rpcServer.setNodeInfo(id_str);
+      }
+    }
+
     /* Set address for remote node fee */
   	if (command_line::has_arg(vm, arg_set_fee_address)) {
 	  std::string addr_str = command_line::get_arg(vm, arg_set_fee_address);
