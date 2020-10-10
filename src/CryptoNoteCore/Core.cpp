@@ -18,7 +18,7 @@
 #include "../Logging/LoggerRef.h"
 #include "../Rpc/CoreRpcServerCommandsDefinitions.h"
 #include "CryptoNoteFormatUtils.h"
-#include "utilities/Fees.h"
+ 
 #include "CryptoNoteTools.h"
 #include "CryptoNoteStatInfo.h"
 #include "Miner.h"
