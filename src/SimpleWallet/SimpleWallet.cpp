@@ -264,7 +264,7 @@ void printListTransfersItem(LoggerRef& logger, const WalletLegacyTransaction& tx
 
   char timeString[TIMESTAMP_MAX_WIDTH + 1];
   time_t timestamp = static_cast<time_t>(txInfo.timestamp);
-  if (std::strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", std::gmtime(&timestamp)) == 0) {
+  if (std::strftime(timeString, sizeof(timeString), "%d-%m-%Y %S:%M:%H", std::gmtime(&timestamp)) == 0) {
     throw std::runtime_error("time buffer is too small");
   }
 
@@ -312,10 +312,9 @@ bool writeAddressFile(const std::string& addressFilename, const std::string& add
 
 bool processServerAliasResponse(const std::string& s, std::string& address) {
   try {
-  //   
-  // Courtesy of Monero Project
-		// make sure the txt record has "oa1:ccx" and find it
-		auto pos = s.find("oa1:ccx");
+    // https://openalias.org/
+		// make sure the txt record has "oa1:cxche" and find it
+		auto pos = s.find("oa1:cxche");
 		if (pos == std::string::npos)
 			return false;
 		// search from there to find "recipient_address="
@@ -325,25 +324,20 @@ bool processServerAliasResponse(const std::string& s, std::string& address) {
 		pos += 18; // move past "recipient_address="
 		// find the next semicolon
 		auto pos2 = s.find(";", pos);
-		if (pos2 != std::string::npos)
-		{
-			// length of address == 95, we can at least validate that much here
-			if (pos2 - pos == 98)
-			{
-				address = s.substr(pos, 98);
+		if (pos2 != std::string::npos) {
+			// length of address == 99, we can at least validate that much here
+			if (pos2 - pos == 99) {
+				address = s.substr(pos, 99);
 			} else {
 				return false;
 			}
 		}
-    }
-	catch (std::exception&) {
+  } catch (std::exception&) {
 		return false;
 	}
 
 	return true;
 }
-
-
 
 bool splitUrlToHostAndUri(const std::string& aliasUrl, std::string& host, std::string& uri) {
   size_t protoBegin = aliasUrl.find("http://");
@@ -374,13 +368,16 @@ bool askAliasesTransfersConfirmation(const std::map<std::string, std::vector<Wal
     }
   }
 
-  std::string answer;
+  char c;
   do {
-    std::cout << "y/n: ";
+    std::cout << "(Y/N): ";
+    std::string answer;
     std::getline(std::cin, answer);
-  } while (answer != "y" && answer != "Y" && answer != "n" && answer != "N");
+    c = answer[0];
+    std::tolower(c);
+  } while (c != 'y' && c != 'n');
 
-  return answer == "y" || answer == "Y";
+  return c == 'y';
 }
 
 }
@@ -1683,7 +1680,7 @@ bool simple_wallet::transfer(const std::vector<std::string> &args) {
       return true;
     }
 
-    /* set static mixin of 4*/
+    /* set static mixin of 4 */
     cmd.fake_outs_count = CryptoNote::parameters::MINIMUM_MIXIN;
 
     /* force minimum fee */

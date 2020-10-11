@@ -143,14 +143,12 @@ namespace CryptoNote
       }
 
     private:
-      void update_blockchain_height()
-      {
+      void update_blockchain_height() {
         uint64_t blockchain_height = m_simple_wallet.m_node->getLastLocalBlockHeight();
         m_blockchain_height = blockchain_height;
         m_blockchain_height_update_time = std::chrono::system_clock::now();
       }
 
-    private:
       CryptoNote::simple_wallet& m_simple_wallet;
       uint64_t m_blockchain_height;
       std::chrono::system_clock::time_point m_blockchain_height_update_time;

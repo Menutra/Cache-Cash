@@ -89,9 +89,11 @@ namespace CryptoNote {
 	/* 15m */
 	const uint64_t FOUNDATION_TRUST = (UINT64_C(15000000) * parameters::COIN);
 	/* 60 days */  
-	const uint64_t REWARD_INCREASE_INTERVAL = ((24 * 60 * 60 / 120) * 60);
+	const uint64_t REWARD_INCREASE_INTERVAL = (parameters::EXPECTED_NUMBER_OF_BLOCKS_PER_DAY * 60);
 
-	const char     PROJECT_NAME[] = "Cache-blockchain-testnet";
+	const char     PROJECT_NAME[] = "Cache";
+	const char     DATA_DIR[] = "cache-blockchain-data-testnet";
+
 	const char     GENESIS_COINBASE_TX_HEX[] = "010a01ff0001c096b102029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd08807121017d6775185749e95ac2d70cae3f29e0e46f430ab648abbe9fdc61d8e7437c60f8";
 	const uint32_t GENESIS_NONCE = 10000;
 	const uint64_t GENESIS_TIMESTAMP = 1527078920;
@@ -133,7 +135,8 @@ namespace CryptoNote {
 	const size_t   P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT = 5000;
 	/* 2 minutes */
 	const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT = 60 * 2 * 1000;
-	const char     P2P_STAT_TRUSTED_PUB_KEY[] = "0000000000000000000000000000000000000000000000000000000000000000";
+  /* "the cache project" hashed with sha256 */
+	const char     P2P_STAT_TRUSTED_PUB_KEY[] = "5a1795d5c9c1c9d3fe1aa2cda90484787a10296e49cad387e9a9208ae78216ae";
 } // namespace CryptoNote
 
 #define ALLOW_DEBUG_COMMANDS

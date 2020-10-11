@@ -288,14 +288,14 @@ std::string get_nix_version_display_string()
   std::string getDefaultDataDirectory()
   {
     //namespace fs = boost::filesystem;
-    // Windows < Vista: C:\Documents and Settings\Username\Application Data\PROJECT_NAME
-    // Windows >= Vista: C:\Users\Username\AppData\Roaming\PROJECT_NAME
-    // Mac: ~/Library/Application Support/PROJECT_NAME
-    // Unix: ~/.PROJECT_NAME
+    // Windows < Vista: C:\Documents and Settings\Username\Application Data\DATA_DIR
+    // Windows >= Vista: C:\Users\Username\AppData\Roaming\DATA_DIR
+    // Mac: ~/Library/Application Support/DATA_DIR
+    // Unix: ~/.DATA_DIR
     std::string config_folder;
 #ifdef _WIN32
     // Windows
-    config_folder = get_special_folder_path(CSIDL_APPDATA, true) + "/" + CryptoNote::PROJECT_NAME;
+    config_folder = get_special_folder_path(CSIDL_APPDATA, true) + "/" + CryptoNote::DATA_DIR;
 #else
     std::string pathRet;
     char* pszHome = getenv("HOME");
@@ -306,10 +306,10 @@ std::string get_nix_version_display_string()
 #ifdef MAC_OSX
     // Mac
     pathRet /= "Library/Application Support";
-    config_folder =  (pathRet + "/" + CryptoNote::PROJECT_NAME);
+    config_folder =  (pathRet + "/" + CryptoNote::DATA_DIR);
 #else
     // Unix
-    config_folder = (pathRet + "/." + CryptoNote::PROJECT_NAME);
+    config_folder = (pathRet + "/." + CryptoNote::DATA_DIR);
 #endif
 #endif
 
