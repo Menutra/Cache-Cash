@@ -381,7 +381,7 @@ namespace CryptoNote
         context.m_state = CryptoNoteConnectionContext::state_shutdown;
       }
     });
-    logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " blocked for " << std::tostring(seconds) "seconds.";
+    logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " blocked for " << std::to_string(seconds) << "seconds.";
     return true;
   }
   //-----------------------------------------------------------------------------------
