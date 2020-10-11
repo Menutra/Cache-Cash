@@ -2200,11 +2200,14 @@ namespace CryptoNote
         {
           sendMessage(BlockchainMessage(NewBlockMessage(id)));
 
+          /* @TODO: Add a clause: if (height % 720) && daemonHeight == blockchainHeight
+           * @WHY:  During sync, this will cause the daemon to save the chain every 720 blocks
+           *        which clogs up the daemon client output. */
           /** Save the blockchain every 720 blocks */
-          if (height % 720 == 0)
+          /*if (height % 720 == 0)
           {
             storeCache();
-          }
+          } */
         }
       }
     }

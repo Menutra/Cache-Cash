@@ -118,25 +118,31 @@ namespace CryptoNote {
 	const size_t   BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 128;
 	const size_t   COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT = 1000;
 
+	const char     P2P_STAT_TRUSTED_PUB_KEY[] = "5a1795d5c9c1c9d3fe1aa2cda90484787a10296e49cad387e9a9208ae78216ae";
 	const size_t   P2P_LOCAL_WHITE_PEERLIST_LIMIT = 1000;
 	const size_t   P2P_LOCAL_GRAY_PEERLIST_LIMIT = 5000;
 	const size_t   P2P_CONNECTION_MAX_WRITE_BUFFER_SIZE = 64 * 1024 * 1024;
 	const uint32_t P2P_DEFAULT_CONNECTIONS_COUNT = 8;
 	const size_t   P2P_DEFAULT_ANCHOR_CONNECTIONS_COUNT = 2;
 	const size_t   P2P_DEFAULT_WHITELIST_CONNECTIONS_PERCENT = 70;
-	/* seconds */
-	const uint32_t P2P_DEFAULT_HANDSHAKE_INTERVAL = 60;
 	const uint32_t P2P_DEFAULT_PACKET_MAX_SIZE = 50000000;
 	const uint32_t P2P_DEFAULT_PEERS_IN_HANDSHAKE = 250;
+  const uint32_t P2P_IP_FAILS_BEFORE_BLOCK = 10;
 	/* 2 seconds */
 	const uint32_t P2P_DEFAULT_PING_CONNECTION_TIMEOUT = 2000;
 	/* 5 seconds */
 	const uint32_t P2P_DEFAULT_CONNECTION_TIMEOUT = 5000;
 	const size_t   P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT = 5000;
+	/* 1 minute */
+	const uint32_t P2P_DEFAULT_HANDSHAKE_INTERVAL = 60;
 	/* 2 minutes */
 	const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT = 60 * 2 * 1000;
-  /* "the cache project" hashed with sha256 */
-	const char     P2P_STAT_TRUSTED_PUB_KEY[] = "5a1795d5c9c1c9d3fe1aa2cda90484787a10296e49cad387e9a9208ae78216ae";
+  /* 5 minutes */
+  const uint32_t P2P_IDLE_CONNECTION_KILL_INTERVAL = (5 * 60);
+  /* 1 hour */
+  const uint32_t P2P_FAILED_ADDR_FORGET_SECONDS = (60 * 60);
+  /* 24 hours */
+  const uint32_t P2P_IP_BLOCKTIME = (60 * 60 * 24);
 } // namespace CryptoNote
 
 #define ALLOW_DEBUG_COMMANDS

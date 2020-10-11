@@ -44,6 +44,9 @@ DaemonCommandsHandler::DaemonCommandsHandler(CryptoNote::core& core, CryptoNote:
   m_consoleHandler.setHandler("show_hr", boost::bind(&DaemonCommandsHandler::show_hr, this, _1), "Start showing hash rate");
   m_consoleHandler.setHandler("hide_hr", boost::bind(&DaemonCommandsHandler::hide_hr, this, _1), "Stop showing hash rate");
   m_consoleHandler.setHandler("set_log", boost::bind(&DaemonCommandsHandler::set_log, this, _1), "set_log <level> - Change current log level, <level> is a number 0-4");
+  m_consoleHandler.setHandler("print_ban", boost::bind(&DaemonCommandsHandler::print_ban, this, _1), "Print banned nodes");
+  m_consoleHandler.setHandler("ban", boost::bind(&DaemonCommandsHandler::ban, this, _1), "Ban a given <IP> for a given amount of <seconds>, ban <IP> [<seconds>]");
+  m_consoleHandler.setHandler("unban", boost::bind(&DaemonCommandsHandler::unban, this, _1), "Unban a given <IP>, unban <IP>");
 }
 
 //--------------------------------------------------------------------------------
@@ -400,4 +403,47 @@ bool DaemonCommandsHandler::start_mining(const std::vector<std::string> &args) {
 bool DaemonCommandsHandler::stop_mining(const std::vector<std::string>& args) {
   m_core.get_miner().stop();
   return true;
+}
+
+//--------------------------------------------------------------------------------
+bool DaemonCommandsHandler::print_ban(const std::vector<std::string>& args) {
+  m_srv.log_banlist();
+  return true;
+}
+
+bool DaemonCommandsHandler::ban(const std::vector<std::string>& args)
+{
+  if (args.size() != 1 && args.size() != 2) return false;
+  std::string addr = args[0];
+  uint32_t ip;
+  time_t seconds;
+  if (args.size() > 1) {
+    try {
+      seconds = std::stoi(args[1]);
+    } catch (const std::exception &e) {
+      return false;
+    }
+    if (seconds == 0) {
+      return false;
+    }
+  } 
+  try {
+    ip = Common::stringToIpAddress(addr);
+  } catch (const std::exception &e) {
+     return false;
+  }
+  return m_srv.ban_host(ip, seconds);
+}
+
+bool DaemonCommandsHandler::unban(const std::vector<std::string>& args)
+{
+  if (args.size() != 1) return false;
+  std::string addr = args[0];
+  uint32_t ip;
+  try {
+    ip = Common::stringToIpAddress(addr);
+  }	catch (const std::exception &e) {
+    return false;
+  }
+  return m_srv.unban_host(ip);
 }
