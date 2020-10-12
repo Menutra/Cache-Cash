@@ -13,6 +13,7 @@
 #include "DaemonCommandsHandler.h"
 
 #include "../CheckpointData.h"
+#include "Common/ColouredMsg.h"
 #include "Common/SignalHandler.h"
 #include "Common/PathTools.h"
 #include "crypto/hash.h"
@@ -22,6 +23,7 @@
 #include "CryptoNoteCore/Currency.h"
 #include "CryptoNoteCore/MinerConfig.h"
 #include "CryptoNoteProtocol/CryptoNoteProtocolHandler.h"
+#include "CryptoNoteProtocol/ICryptoNoteProtocolQuery.h"
 #include "P2p/NetNode.h"
 #include "P2p/NetNodeConfig.h"
 #include "Rpc/RpcServer.h"
@@ -43,9 +45,9 @@ namespace po = boost::program_options;
 
 namespace
 {
-  const command_line::arg_descriptor<std::string> arg_config_file = {"config-file", "Specify configuration file", std::string(CryptoNote::PROJECT_NAME) + ".conf"};
-  const command_line::arg_descriptor<bool>        arg_os_version  = {"os-version", ""};
+  const command_line::arg_descriptor<std::string> arg_version = {"version", "Shows OS and Cache Software version details"};
   const command_line::arg_descriptor<std::string> arg_log_file    = {"log-file", "", ""};
+  const command_line::arg_descriptor<std::string> arg_set_node_id = { "node-id", "If you're setting your daemon to become a public node, then setting an ID is recommended", "" };
   const command_line::arg_descriptor<std::string> arg_set_fee_address = { "fee-address", "Set a fee address for remote nodes", "" };
   const command_line::arg_descriptor<std::string> arg_set_view_key = { "view-key", "Set secret view-key for remote node fee confirmation", "" };
   const command_line::arg_descriptor<int>         arg_log_level   = {"log-level", "", 2}; // info level
@@ -75,7 +77,6 @@ JsonValue buildLoggerConfiguration(Level level, const std::string& logfile) {
   loggerConfiguration.insert("globalLevel", static_cast<int64_t>(level));
 
   JsonValue& cfgLoggers = loggerConfiguration.insert("loggers", JsonValue::ARRAY);
-
   JsonValue& fileLogger = cfgLoggers.pushBack(JsonValue::OBJECT);
   fileLogger.insert("type", "file");
   fileLogger.insert("filename", logfile);
@@ -84,7 +85,7 @@ JsonValue buildLoggerConfiguration(Level level, const std::string& logfile) {
   JsonValue& consoleLogger = cfgLoggers.pushBack(JsonValue::OBJECT);
   consoleLogger.insert("type", "console");
   consoleLogger.insert("level", static_cast<int64_t>(TRACE));
-  consoleLogger.insert("pattern", "%L ");
+  consoleLogger.insert("pattern", "");
 
   return loggerConfiguration;
 }
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
 #endif
 
   LoggerManager logManager;
-  LoggerRef logger(logManager, "daemon");
+  LoggerRef logger(logManager, "Daemon.cpp");
 
   try {
     po::options_description desc_cmd_only("Command line options");
@@ -106,12 +107,10 @@ int main(int argc, char* argv[])
    desc_cmd_sett.add_options() 
       ("enable-blockchain-indexes,i", po::bool_switch()->default_value(false), "Enable blockchain indexes");
 
-
     command_line::add_arg(desc_cmd_only, command_line::arg_help);
     command_line::add_arg(desc_cmd_only, command_line::arg_version);
-    command_line::add_arg(desc_cmd_only, arg_os_version);
     command_line::add_arg(desc_cmd_only, command_line::arg_data_dir, Tools::getDefaultDataDirectory());
-    command_line::add_arg(desc_cmd_only, arg_config_file);
+    command_line::add_arg(desc_cmd_sett, arg_set_node_id);
 	  command_line::add_arg(desc_cmd_sett, arg_set_fee_address);
     command_line::add_arg(desc_cmd_sett, arg_log_file);
     command_line::add_arg(desc_cmd_sett, arg_log_level);
@@ -120,7 +119,6 @@ int main(int argc, char* argv[])
     command_line::add_arg(desc_cmd_sett, arg_testnet_on);
     command_line::add_arg(desc_cmd_sett, arg_print_genesis_tx);
     command_line::add_arg(desc_cmd_sett, arg_load_checkpoints);
-    //command_line::add_arg(desc_cmd_sett, arg_genesis_block_reward_address);
 
     RpcServerConfig::initOptions(desc_cmd_sett);
     CoreConfig::initOptions(desc_cmd_sett);
@@ -131,36 +129,22 @@ int main(int argc, char* argv[])
     desc_options.add(desc_cmd_only).add(desc_cmd_sett);
 
     po::variables_map vm;
-    bool r = command_line::handle_error_helper(desc_options, [&]()
-    {
+    bool r = command_line::handle_error_helper(desc_options, [&]() {
       po::store(po::parse_command_line(argc, argv, desc_options), vm);
 
-      if (command_line::get_arg(vm, command_line::arg_help))
-      {
-        std::cout << CryptoNote::PROJECT_NAME << " v" << PROJECT_VERSION << ENDL << ENDL;
+      if (command_line::get_arg(vm, command_line::arg_help)) {
+        std::cout << "Cache v" << PROJECT_VERSION << ENDL << ENDL;
         std::cout << desc_options << std::endl;
         return false;
       }
 
       if (command_line::get_arg(vm, arg_print_genesis_tx)) {
-        //print_genesis_tx_hex(vm);
 		    print_genesis_tx_hex();
         return false;
       }
 
       std::string data_dir = command_line::get_arg(vm, command_line::arg_data_dir);
-      std::string config = command_line::get_arg(vm, arg_config_file);
-
       boost::filesystem::path data_dir_path(data_dir);
-      boost::filesystem::path config_path(config);
-      if (!config_path.has_parent_path()) {
-        config_path = data_dir_path / config_path;
-      }
-
-      boost::system::error_code ec;
-      if (boost::filesystem::exists(config_path, ec)) {
-        po::store(po::parse_config_file<char>(config_path.string<std::string>().c_str(), desc_cmd_sett), vm);
-      }
 
       po::notify(vm);
       return true;
@@ -181,22 +165,19 @@ int main(int argc, char* argv[])
       }
     }
 
-    Level cfgLogLevel = static_cast<Level>(static_cast<int>(Logging::ERROR) + command_line::get_arg(vm, arg_log_level));
-
     // configure logging
+    Level cfgLogLevel = static_cast<Level>(static_cast<int>(Logging::ERROR) + command_line::get_arg(vm, arg_log_level));
     logManager.configure(buildLoggerConfiguration(cfgLogLevel, cfgLogFile));
 
-    logger(INFO, BRIGHT_YELLOW) << "Cache v" << PROJECT_VERSION;
+    logger(INFO, BRIGHT_MAGENTA) << "\tCache v" << PROJECT_VERSION << std::endl << std::endl;
 
     if (command_line_preprocessor(vm, logger)) {
       return 0;
     }
 
-    logger(INFO) << "Module folder: " << argv[0];
-
     bool testnet_mode = command_line::get_arg(vm, arg_testnet_on);
     if (testnet_mode) {
-      logger(INFO) << "Starting in testnet mode!";
+      logger(INFO, BRIGHT_YELLOW) << "Starting in testnet mode!";
     }
 
     //create objects and link them
@@ -206,7 +187,7 @@ int main(int argc, char* argv[])
     try {
       currencyBuilder.currency();
     } catch (std::exception&) {
-      std::cout << "GENESIS_COINBASE_TX_HEX constant has an incorrect value. Please launch: " << CryptoNote::PROJECT_NAME << "d --" << arg_print_genesis_tx.name;
+      std::cout << "Incorrect Genesis TX!";
       return 1;
     }
 
@@ -222,7 +203,9 @@ int main(int argc, char* argv[])
         for (const auto& cp : CryptoNote::CHECKPOINTS) {
           checkpoints.add_checkpoint(cp.height, cp.blockId);
         }
-        logger(INFO) << "Loaded " << CryptoNote::CHECKPOINTS.size() << " default checkpoints";
+        if (CryptoNote::CHECKPOINTS.size() > 0) {
+          logger(INFO, BRIGHT_GREEN) << "Loaded " << CryptoNote::CHECKPOINTS.size() << " default checkpoints";
+        }
       } else {
         bool results = checkpoints.load_checkpoints_from_file(checkpoints_file);
         if (!results) {
@@ -231,7 +214,7 @@ int main(int argc, char* argv[])
       }
     }
 
-     CoreConfig coreConfig;
+    CoreConfig coreConfig;
     coreConfig.init(vm);
     NetNodeConfig netNodeConfig;
     netNodeConfig.init(vm);
@@ -252,23 +235,21 @@ int main(int argc, char* argv[])
     }
 
     System::Dispatcher dispatcher;
-
     CryptoNote::CryptoNoteProtocolHandler cprotocol(currency, dispatcher, ccore, nullptr, logManager);
     CryptoNote::NodeServer p2psrv(dispatcher, cprotocol, logManager);
     CryptoNote::RpcServer rpcServer(dispatcher, logManager, ccore, p2psrv, cprotocol);
 
     cprotocol.set_p2p_endpoint(&p2psrv);
     ccore.set_cryptonote_protocol(&cprotocol);
-    DaemonCommandsHandler dch(ccore, p2psrv, logManager);
+    DaemonCommandsHandler dch(ccore, p2psrv, logManager, cprotocol, &rpcServer);
 
     // initialize objects
-    logger(INFO) << "Initializing p2p server...";
+    logger(INFO) << "Initializing P2P server...";
     if (!p2psrv.init(netNodeConfig)) {
-      logger(ERROR, BRIGHT_RED) << "Failed to initialize p2p server.";
+      logger(ERROR, BRIGHT_RED) << "Failed to initialize P2P server.";
       return 1;
     }
-
-    logger(INFO) << "P2p server initialized OK";
+    logger(INFO, BRIGHT_GREEN) << "P2P server has been initialized!";
 
     // initialize core here
     logger(INFO) << "Initializing core...";
@@ -276,16 +257,26 @@ int main(int argc, char* argv[])
       logger(ERROR, BRIGHT_RED) << "Failed to initialize core";
       return 1;
     }
-
-    logger(INFO) << "Core initialized OK";
+    logger(INFO, BRIGHT_GREEN) << "Core has been initialized!";
 
     // start components
     if (!command_line::has_arg(vm, arg_console)) {
       dch.start_handling();
     }
 
-    logger(INFO) << "Starting core rpc server on address " << rpcConfig.getBindAddress();
-  
+    logger(INFO) << "Starting daemon RPC server on address " << rpcConfig.getBindAddress();
+    
+    std::string id_str = command_line::get_arg(vm, arg_set_node_id);
+    if (!id_str.empty() && id_str.size() > 128) {
+      logger(ERROR, BRIGHT_RED) << "Too long contact info";
+      return 1;
+    }
+    if (command_line::has_arg(vm, arg_set_node_id)) {
+      if (!id_str.empty()) {
+        rpcServer.setNodeInfo(id_str);
+      }
+    }
+
     /* Set address for remote node fee */
   	if (command_line::has_arg(vm, arg_set_fee_address)) {
 	  std::string addr_str = command_line::get_arg(vm, arg_set_fee_address);
@@ -297,7 +288,6 @@ int main(int argc, char* argv[])
         }
         rpcServer.setFeeAddress(addr_str, acc);
         logger(INFO, BRIGHT_YELLOW) << "Remote node fee address set: " << addr_str;
-
       }
 	  }
   
@@ -312,55 +302,45 @@ int main(int argc, char* argv[])
     }
  
     rpcServer.start(rpcConfig.bindIp, rpcConfig.bindPort);
-    logger(INFO) << "Core rpc server started ok";
+    logger(INFO, BRIGHT_GREEN) << "Core RPC server has been initialized on " << rpcConfig.getBindAddress();
 
     Tools::SignalHandler::install([&dch, &p2psrv] {
       dch.stop_handling();
       p2psrv.sendStopSignal();
     });
 
-    logger(INFO) << "Starting p2p net loop...";
+    logger(INFO) << "Starting P2P net loop...";
     p2psrv.run();
-    logger(INFO) << "p2p net loop stopped";
+    logger(INFO) << "P2P net loop stopped";
 
     dch.stop_handling();
 
     //stop components
-    logger(INFO) << "Stopping core rpc server...";
+    logger(INFO) << "Stopping core RPC server...";
     rpcServer.stop();
 
     //deinitialize components
     logger(INFO) << "Deinitializing core...";
     ccore.deinit();
-    logger(INFO) << "Deinitializing p2p...";
+    logger(INFO) << "Deinitializing P2P...";
     p2psrv.deinit();
 
     ccore.set_cryptonote_protocol(NULL);
     cprotocol.set_p2p_endpoint(NULL);
-
   } catch (const std::exception& e) {
     logger(ERROR, BRIGHT_RED) << "Exception: " << e.what();
     return 1;
   }
 
-  logger(INFO) << "Node stopped.";
+  logger(INFO, BRIGHT_GREEN) << "The node has successfully shutdown.";
   return 0;
 }
 
 bool command_line_preprocessor(const boost::program_options::variables_map &vm, LoggerRef &logger) {
-  bool exit = false;
-
   if (command_line::get_arg(vm, command_line::arg_version)) {
-    std::cout << CryptoNote::PROJECT_NAME << " v" << PROJECT_VERSION << ENDL;
-    exit = true;
-  }
-
-  if (command_line::get_arg(vm, arg_os_version)) {
-    std::cout << "OS: " << Tools::get_os_version_string() << ENDL;
-    exit = true;
-  }
-
-  if (exit) {
+    std::cout << "\t-- Version Information --" << std::endl
+      << BrightPurpleMsg("Cache Software : v") << BrightYellowMsg(PROJECT_VERSION) << std::endl
+      << BrightPurpleMsg("OS Version : ") << BrightYellowMsg(Tools::get_os_version_string()) << std::endl;
     return true;
   }
 
