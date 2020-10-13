@@ -192,41 +192,35 @@ namespace CryptoNote
       return true;
     }
 
-    void serialize(ISerializer &s)
-    {
+    void serialize(ISerializer &s) {
       auto start = std::chrono::steady_clock::now();
 
       uint8_t version = CURRENT_BLOCKCACHE_STORAGE_ARCHIVE_VER;
       s(version, "version");
 
       // ignore old versions, do rebuild
-      if (version < CURRENT_BLOCKCACHE_STORAGE_ARCHIVE_VER)
-      {
+      if (version < CURRENT_BLOCKCACHE_STORAGE_ARCHIVE_VER) {
         return;
       }
 
       std::string operation;
-      if (s.type() == ISerializer::INPUT)
-      {
+      if (s.type() == ISerializer::INPUT) {
         operation = "- Loading : ";
         Crypto::Hash blockHash;
         s(blockHash, "last_block");
 
-        if (blockHash != m_lastBlockHash)
-        {
+        if (blockHash != m_lastBlockHash) {
           return;
         }
-      }
-      else
-      {
+      } else {
         operation = "- Saving : ";
         s(m_lastBlockHash, "last_block");
       }
 
-      logger(INFO) << operation << "Block Index";
+      logger(INFO, BRIGHT_MAGENTA) << operation << "Block Index";
       s(m_bs.m_blockIndex, "block_index");
 
-      logger(INFO) << operation << "Transaction Map";
+      logger(INFO, BRIGHT_MAGENTA) << operation << "Transaction Map";
       if (s.type() == ISerializer::INPUT) {
         phmap::BinaryInputArchive ar_in(appendPath(m_bs.m_config_folder, "transactionsmap.dat").c_str());
         m_bs.m_transactionMap.load(ar_in);
@@ -235,7 +229,7 @@ namespace CryptoNote
         m_bs.m_transactionMap.dump(ar_out);
       }
 
-      logger(INFO) << operation << "Spent Keys";
+      logger(INFO, BRIGHT_MAGENTA) << operation << "Spent Keys";
       if (s.type() == ISerializer::INPUT) {
         phmap::BinaryInputArchive ar_in(appendPath(m_bs.m_config_folder, "spentkeys.dat").c_str());
         m_bs.m_spent_keys.load(ar_in);
@@ -244,18 +238,18 @@ namespace CryptoNote
         m_bs.m_spent_keys.dump(ar_out);
       }
 
-      logger(INFO) << operation << "Outputs";
+      logger(INFO, BRIGHT_MAGENTA) << operation << "Outputs";
       s(m_bs.m_outputs, "outputs");
 
-      logger(INFO) << operation << "Multi-Signature Outputs";
+      logger(INFO, BRIGHT_MAGENTA) << operation << "Multi-Signature Outputs";
       s(m_bs.m_multisignatureOutputs, "multisig_outputs");
 
-      logger(INFO) << operation << "Deposit Index";
+      logger(INFO, BRIGHT_MAGENTA) << operation << "Deposit Index";
       s(m_bs.m_depositIndex, "deposit_index");
 
       auto dur = std::chrono::steady_clock::now() - start;
 
-      logger(INFO) << "Serialization time took: " << std::chrono::duration_cast<std::chrono::milliseconds>(dur).count() << "ms";
+      logger(INFO, BRIGHT_GREEN) << "Serialization time took: " << std::chrono::duration_cast<std::chrono::milliseconds>(dur).count() << "ms";
 
       m_loaded = true;
     }
@@ -612,7 +606,7 @@ namespace CryptoNote
     m_multisignatureOutputs.clear();
     for (uint32_t b = 0; b < m_blocks.size(); ++b) {
       if (b % 1000 == 0) {
-        logger(INFO, BRIGHT_WHITE) << "Rebuilding Cache for Height " << b << " of " << m_blocks.size();
+        logger(INFO, BRIGHT_MAGENTA) << "Rebuilding Cache for Height " << b << " of " << m_blocks.size();
       }
 
       const BlockEntry &block = m_blocks[b];
@@ -662,7 +656,7 @@ namespace CryptoNote
     }
 
     std::chrono::duration<double> duration = std::chrono::steady_clock::now() - timePoint;
-    logger(INFO, BRIGHT_GREEN) << "Rebuilding internal structures took: " << duration.count();
+    logger(INFO, BRIGHT_GREEN) << "Rebuilding internal structures took: " << duration.count() << "seconds";
   }
 
   bool Blockchain::storeCache()
@@ -913,7 +907,7 @@ namespace CryptoNote
       }
     }
 
-    logger(INFO, BRIGHT_WHITE) << "Rollback success.";
+    logger(INFO, BRIGHT_GREEN) << "Rollback success.";
     return true;
   }
 

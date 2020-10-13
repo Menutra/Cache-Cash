@@ -55,8 +55,8 @@ namespace
     "network id is changed. Use it with --data-dir flag. The wallet must be launched with --testnet flag.", false};
   const command_line::arg_descriptor<bool>        arg_print_genesis_tx = { "print-genesis-tx", "Prints genesis' block tx hex to insert it to config and exits" };
   const command_line::arg_descriptor<std::string> arg_load_checkpoints   = {"load-checkpoints", "Launched with --load-checkpoints=filename.csv for faster initial blockchain sync", "default"};
-  const command_line::arg_descriptor<std::string> arg_set_fee_address = { "fee-address", "Sets fee address for light wallets that use the daemon.", "" };
-  const command_line::arg_descriptor<int>         arg_set_fee_amount = { "fee-amount", "Sets the fee amount for the light wallets that use the daemon.", 0 };
+  const command_line::arg_descriptor<std::string> arg_set_fee_address = { "fee-address", "Sets the convenience charge address for remote wallets that use this node.", "" };
+  const command_line::arg_descriptor<int>         arg_set_fee_amount = { "fee-amount", "Sets the convenience charge amount for remote wallets that use this node.", 0 };
 }
 
 bool command_line_preprocessor(const boost::program_options::variables_map& vm, LoggerRef& logger);
@@ -171,8 +171,9 @@ int main(int argc, char* argv[])
     Level cfgLogLevel = static_cast<Level>(static_cast<int>(Logging::ERROR) + command_line::get_arg(vm, arg_log_level));
     logManager.configure(buildLoggerConfiguration(cfgLogLevel, cfgLogFile));
 
-    logger(INFO, BRIGHT_MAGENTA) << std::endl << std::endl
-      << "\tCache v" << PROJECT_VERSION << std::endl << std::endl;
+    std::cout << std::endl << std::endl;
+    logger(INFO, BRIGHT_MAGENTA) << "\tCache v" << PROJECT_VERSION;
+    std::cout << std::endl;
 
     if (command_line_preprocessor(vm, logger)) {
       return 0;
@@ -284,7 +285,7 @@ int main(int argc, char* argv[])
     }
 
     /* Set address for remote node fee */
-  	if (command_line::has_arg(vm, arg_set_fee_address)) {
+  	if (command_line::has_arg(vm, arg_set_fee_address) && command_line::has_arg(vm, arg_set_fee_amount)) {
 	    std::string addr_str = command_line::get_arg(vm, arg_set_fee_address);
 	    if (!addr_str.empty()) {
         AccountPublicAddress acc = boost::value_initialized<AccountPublicAddress>();
@@ -294,6 +295,20 @@ int main(int argc, char* argv[])
         }
         rpcServer.setFeeAddress(addr_str);
         logger(INFO, BRIGHT_YELLOW) << "Remote node fee address set: " << addr_str;
+      }
+
+      uint32_t fee_amount = command_line::get_arg(vm, arg_set_fee_amount);
+      uint32_t max_node_fee = 100000;
+      if (fee_amount <= 0) {
+        logger(WARNING, YELLOW) << "No fee has been set!";
+        return 1;
+      } else if (fee_amount > max_node_fee) {
+        fee_amount = max_node_fee;
+        uint64_t formatted_fee = fee_amount;
+        logger(WARNING, YELLOW) << "Your node fee is too high! To be reasonable, it has been change to " + currency.formatAmount(formatted_fee) + " $CXCHE.";
+      } else if (fee_amount > 0 && fee_amount <= max_node_fee) {
+        uint64_t formatted_fee = fee_amount;
+        logger(INFO, BRIGHT_YELLOW) << "Remote node fee set: " + currency.formatAmount(formatted_fee);
       }
 	  }
   
