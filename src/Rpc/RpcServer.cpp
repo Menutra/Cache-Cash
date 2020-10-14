@@ -93,7 +93,7 @@ std::unordered_map<std::string, RpcServer::RpcHandler<RpcServer::HandlerFunction
   { "/getheight", { jsonMethod<COMMAND_RPC_GET_HEIGHT>(&RpcServer::on_get_height), true } },
   { "/gettransactions", { jsonMethod<COMMAND_RPC_GET_TRANSACTIONS>(&RpcServer::on_get_transactions), false } },
   { "/sendrawtransaction", { jsonMethod<COMMAND_RPC_SEND_RAW_TX>(&RpcServer::on_send_raw_tx), false } },
-  { "/feeaddress", { jsonMethod<COMMAND_RPC_GET_FEE_ADDRESS>(&RpcServer::on_get_fee_address), true } },
+  { "/feeinfo", { jsonMethod<COMMAND_RPC_GET_FEE_ADDRESS>(&RpcServer::on_get_fee_info), true } }, 
   { "/peers", { jsonMethod<COMMAND_RPC_GET_PEER_LIST>(&RpcServer::on_get_peer_list), true } },
   { "/getpeers", { jsonMethod<COMMAND_RPC_GET_PEER_LIST>(&RpcServer::on_get_peer_list), true } },
 
@@ -488,9 +488,13 @@ bool RpcServer::on_query_blocks_lite(const COMMAND_RPC_QUERY_BLOCKS_LITE::reques
   return true;
 }
 
-bool RpcServer::setFeeAddress(const std::string& fee_address, const AccountPublicAddress& fee_acc) {
+bool RpcServer::setFeeAddress(const std::string fee_address) {
   m_fee_address = fee_address;
-  m_fee_acc = fee_acc;
+  return true;
+}
+
+bool RpcServer::setFeeAmount(const uint32_t fee_amount) {
+  m_fee_amount = fee_amount;
   return true;
 }
 
@@ -505,12 +509,14 @@ bool RpcServer::setViewKey(const std::string& view_key) {
   return true;
 }
 
-bool RpcServer::on_get_fee_address(const COMMAND_RPC_GET_FEE_ADDRESS::request& req, COMMAND_RPC_GET_FEE_ADDRESS::response& res) {
+bool RpcServer::on_get_fee_info(const COMMAND_RPC_GET_FEE_ADDRESS::request & req, COMMAND_RPC_GET_FEE_ADDRESS::response & res) {
   if (m_fee_address.empty()) {
-	  res.status = CORE_RPC_STATUS_OK;
-	  return false; 
+    res.status = "Node's fee address is not set";
+    return false;
   }
-  res.fee_address = m_fee_address;
+
+  res.address = m_fee_address;
+  res.amount = m_fee_amount;
   res.status = CORE_RPC_STATUS_OK;
   return true;
 }

@@ -350,20 +350,6 @@ struct COMMAND_RPC_GETBLOCKCOUNT {
   };
 };
 
-struct COMMAND_RPC_GET_FEE_ADDRESS {
-  typedef EMPTY_STRUCT request;
-
-  struct response {
-    std::string fee_address;
-	std::string status;
-
-    void serialize(ISerializer &s) {
-      KV_MEMBER(fee_address)
-	  KV_MEMBER(status)
-    }
-  };
-};
-
 struct COMMAND_RPC_GETBLOCKHASH {
   typedef std::vector<uint64_t> request;
   typedef std::string response;
@@ -878,6 +864,22 @@ struct K_COMMAND_RPC_CHECK_RESERVE_PROOF {
 			KV_MEMBER(spent)
 		}
 	};
+};
+
+struct COMMAND_RPC_GET_FEE_ADDRESS {
+  typedef EMPTY_STRUCT request;
+
+  struct response {
+    std::string address;
+    uint32_t amount;
+    std::string status;
+
+    void serialize(ISerializer & s) {
+      KV_MEMBER(address)
+      KV_MEMBER(amount)
+      KV_MEMBER(status)
+    }
+  };
 };
 
 }
