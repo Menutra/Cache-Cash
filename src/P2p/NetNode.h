@@ -177,7 +177,7 @@ namespace CryptoNote
     virtual void relay_notify_to_all(int command, const BinaryArray& data_buff, const net_connection_id* excludeConnection) override;
     virtual bool invoke_notify_to_peer(int command, const BinaryArray& req_buff, const CryptoNoteConnectionContext& context) override;
     virtual void for_each_connection(std::function<void(CryptoNote::CryptoNoteConnectionContext&, PeerIdType)> f) override;
-    virtual void externalRelayNotifyToAll(int command, const BinaryArray& data_buff) override;
+    virtual void externalRelayNotifyToAll(int command, const BinaryArray& data_buff, const net_connection_id* excludeConnection) override;
     virtual void drop_connection(CryptoNoteConnectionContext& context, bool add_fail) override;
 
     //-----------------------------------------------------------------------------------------------
