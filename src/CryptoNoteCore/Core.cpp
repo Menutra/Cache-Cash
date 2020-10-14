@@ -126,6 +126,10 @@ bool core::get_alternative_blocks(std::list<Block>& blocks) {
 size_t core::get_alternative_blocks_count() {
   return m_blockchain.getAlternativeBlocksCount();
 }
+
+std::time_t core::getStartTime() const {
+  return start_time;
+}
 //-----------------------------------------------------------------------------------------------
 bool core::init(const CoreConfig& config, const MinerConfig& minerConfig, bool load_existing) {
   m_config_folder = config.configFolder;
@@ -147,6 +151,7 @@ bool core::init(const CoreConfig& config, const MinerConfig& minerConfig, bool l
     logger(ERROR, BRIGHT_RED) << "<< Core.cpp << " << "Failed to initialize blockchain storage";
     return false;
   }
+  start_time = std::time(nullptr);
 
   return load_state_data();
 }
@@ -348,19 +353,19 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     b = boost::value_initialized<Block>();
     b.majorVersion = m_blockchain.get_block_major_version_for_height(height);
 
-	if (b.majorVersion < BLOCK_MAJOR_VERSION_2) {
+  	if (b.majorVersion < BLOCK_MAJOR_VERSION_2) {
       if (b.majorVersion == BLOCK_MAJOR_VERSION_1) {
         b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_2) == UpgradeDetectorBase::UNDEF_HEIGHT ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
       }
     } else {
-		b.minorVersion = BLOCK_MINOR_VERSION_0;
-	}
+		  b.minorVersion = BLOCK_MINOR_VERSION_0;
+	  }
 
     b.previousBlockHash = get_tail_id();
     b.timestamp = time(NULL);
-// k0x001
-// Don't generate a block template with invalid timestamp
-// Fix by Jagerman
+
+    // Don't generate a block template with invalid timestamp
+    // Fix by Jagerman
     if(height >= m_currency.timestampCheckWindow()) {
       std::vector<uint64_t> timestamps;
       for(uint32_t offset = height - static_cast<uint32_t>(m_currency.timestampCheckWindow()); offset < height; ++offset) {
@@ -368,10 +373,10 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
       }
       uint64_t median_ts = Common::medianValue(timestamps);
       if (b.timestamp < median_ts) {
-          b.timestamp = median_ts;
+        b.timestamp = median_ts;
       }
-    }
-//	
+    }	
+
     median_size = m_blockchain.getCurrentCumulativeBlocksizeLimit() / 2;
     already_generated_coins = m_blockchain.getCoinsInCirculation();
   }
@@ -411,13 +416,13 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
       if (cumulative_size != txs_size + getObjectBinarySize(b.baseTransaction)) {
         if (!(cumulative_size + 1 == txs_size + getObjectBinarySize(b.baseTransaction))) { logger(ERROR, BRIGHT_RED) << "<< Core.cpp << " << "unexpected case: cumulative_size=" << cumulative_size << " + 1 is not equal txs_cumulative_size=" << txs_size << " + get_object_blobsize(b.baseTransaction)=" << getObjectBinarySize(b.baseTransaction); return false; }
           b.baseTransaction.extra.resize(b.baseTransaction.extra.size() - 1);
-          if (cumulative_size != txs_size + getObjectBinarySize(b.baseTransaction)) {
-            //fuck, not lucky, -1 makes varint-counter size smaller, in that case we continue to grow with cumulative_size
-            logger(TRACE, BRIGHT_RED) <<
-              "Miner tx creation have no luck with delta_extra size = " << delta << " and " << delta - 1;
+        if (cumulative_size != txs_size + getObjectBinarySize(b.baseTransaction)) {
+          //fuck, not lucky, -1 makes varint-counter size smaller, in that case we continue to grow with cumulative_size
+          logger(TRACE, BRIGHT_RED) <<
+            "Miner tx creation have no luck with delta_extra size = " << delta << " and " << delta - 1;
 
-            cumulative_size += delta - 1;
-            continue;
+          cumulative_size += delta - 1;
+          continue;
         }
         logger(DEBUGGING, BRIGHT_GREEN) <<
           "Setting extra for block: " << b.baseTransaction.extra.size() << "<< Core.cpp << " << ", try_count=" << try_count;

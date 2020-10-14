@@ -77,9 +77,7 @@ namespace CryptoNote
 
     bool help(const std::vector<std::string> &args = std::vector<std::string>());
     bool exit(const std::vector<std::string> &args);
-    bool start_mining(const std::vector<std::string> &args);
     bool show_dust(const std::vector<std::string> &args);
-    bool stop_mining(const std::vector<std::string> &args);
     bool show_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool sign_message(const std::vector<std::string> &args);
     bool verify_signature(const std::vector<std::string> &args);
@@ -145,14 +143,12 @@ namespace CryptoNote
       }
 
     private:
-      void update_blockchain_height()
-      {
+      void update_blockchain_height() {
         uint64_t blockchain_height = m_simple_wallet.m_node->getLastLocalBlockHeight();
         m_blockchain_height = blockchain_height;
         m_blockchain_height_update_time = std::chrono::system_clock::now();
       }
 
-    private:
       CryptoNote::simple_wallet& m_simple_wallet;
       uint64_t m_blockchain_height;
       std::chrono::system_clock::time_point m_blockchain_height_update_time;
