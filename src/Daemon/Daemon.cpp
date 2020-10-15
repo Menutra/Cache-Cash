@@ -299,10 +299,7 @@ int main(int argc, char* argv[])
 
       uint32_t fee_amount = command_line::get_arg(vm, arg_set_fee_amount);
       uint32_t max_node_fee = 100000;
-      if (fee_amount <= 0 && command_line::has_arg(vm, set_fee_amount)) {
-        logger(WARNING, YELLOW) << "No fee has been set!";
-        return 1;
-      } else if (fee_amount > max_node_fee) {
+      if (fee_amount > max_node_fee) {
         fee_amount = max_node_fee;
         uint64_t formatted_fee = fee_amount;
         logger(WARNING, YELLOW) << "Your node fee is too high! To be reasonable, it has been change to " + currency.formatAmount(formatted_fee) + " $CXCHE.";
@@ -310,7 +307,7 @@ int main(int argc, char* argv[])
         uint64_t formatted_fee = fee_amount;
         logger(INFO, BRIGHT_YELLOW) << "Remote node fee set: " + currency.formatAmount(formatted_fee);
       }
-	  }
+    }
   
     /* This sets the view-key so we can confirm that
        the fee is part of the transaction blob */       
