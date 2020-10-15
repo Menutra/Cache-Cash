@@ -299,7 +299,7 @@ int main(int argc, char* argv[])
 
       uint32_t fee_amount = command_line::get_arg(vm, arg_set_fee_amount);
       uint32_t max_node_fee = 100000;
-      if (fee_amount <= 0) {
+      if (fee_amount <= 0 && command_line::has_arg(vm, set_fee_amount)) {
         logger(WARNING, YELLOW) << "No fee has been set!";
         return 1;
       } else if (fee_amount > max_node_fee) {
