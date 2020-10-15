@@ -126,6 +126,18 @@ namespace CryptoNote
       }
       return ss.str();
     }
+
+    std::string print_banlist_to_string(std::map<uint32_t, time_t> list) {
+      auto now = time(nullptr);
+      std::stringstream ss;
+      ss << std::setfill('0') << std::setw(8) << std::noshowbase;
+      for (std::map<uint32_t, time_t>::const_iterator i = list.begin(); i != list.end(); ++i) {
+        if (i->second > now) {
+          ss << Common::ipAddressToString(i->first) << "\t" << Common::timeIntervalToString(i->second - now) << std::endl;
+        }
+      }
+      return ss.str();
+    }
   }
 
   //-----------------------------------------------------------------------------------
@@ -359,6 +371,78 @@ namespace CryptoNote
     return false;
   }
 
+  //-----------------------------------------------------------------------------------
+
+  bool NodeServer::block_host(const uint32_t address_ip, time_t seconds) {
+    m_blocked_hosts[address_ip] = time(nullptr) + seconds;
+    // drop any connection to that IP
+    forEachConnection([&](P2pConnectionContext& context) {
+      if (context.m_remote_ip == address_ip) {
+        context.m_state = CryptoNoteConnectionContext::state_shutdown;
+      }
+    });
+    logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " blocked for " << std::to_string(seconds) << "seconds.";
+    return true;
+  }
+  //-----------------------------------------------------------------------------------
+
+  bool NodeServer::unblock_host(const uint32_t address_ip) {
+    auto i = m_blocked_hosts.find(address_ip);
+    if (i == m_blocked_hosts.end()) {
+      logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " is not blocked.";
+      return false;
+    }
+    m_blocked_hosts.erase(i);
+    logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " unblocked.";
+    return true;
+  }
+  //-----------------------------------------------------------------------------------
+
+  bool NodeServer::add_host_fail(const uint32_t address_ip) {
+    std::unique_lock<std::mutex> lock(mutex);
+    uint64_t fails = ++m_host_fails_score[address_ip];
+    logger(DEBUGGING) << "Host " << Common::ipAddressToString(address_ip) << " fail score=" << fails;
+    if (fails >= P2P_IP_FAILS_BEFORE_BLOCK) {
+      auto i = m_host_fails_score.find(address_ip);
+      if (i != m_host_fails_score.end()) {
+        i->second = P2P_IP_FAILS_BEFORE_BLOCK / 2;
+        block_host(address_ip);
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+  //-----------------------------------------------------------------------------------
+
+  bool NodeServer::is_remote_host_allowed(const uint32_t address_ip) {
+    std::unique_lock<std::mutex> lock(mutex);
+    auto i = m_blocked_hosts.find(address_ip);
+    if (i == m_blocked_hosts.end())
+      return true;
+    if (time(nullptr) >= i->second)
+      return unblock_host(address_ip);
+    return false;
+  }
+  //-----------------------------------------------------------------------------------
+
+  bool NodeServer::ban_host(const uint32_t address_ip, time_t seconds) {
+	  std::unique_lock<std::mutex> lock(mutex);
+	  return block_host(address_ip, seconds);
+  }
+
+  bool NodeServer::unban_host(const uint32_t address_ip) {
+	  std::unique_lock<std::mutex> lock(mutex);
+	  return unblock_host(address_ip);
+  }
+  //-----------------------------------------------------------------------------------
+
+  void NodeServer::drop_connection(CryptoNoteConnectionContext& context, bool add_fail) {
+    if (add_fail)
+      add_host_fail(context.m_remote_ip);
+
+    context.m_state = CryptoNoteConnectionContext::state_shutdown;
+  }
   //-----------------------------------------------------------------------------------
 
   bool NodeServer::handle_command_line(const boost::program_options::variables_map& vm)
@@ -614,6 +698,7 @@ namespace CryptoNote
     }
 
     if (!handle_remote_peerlist(rsp.local_peerlist, rsp.node_data.local_time, context)) {
+      add_host_fail(context.m_remote_ip);
       logger(Logging::DEBUGGING) << context << "COMMAND_HANDSHAKE: failed to handle_remote_peerlist(...), closing connection.";
       return false;
     }
@@ -844,6 +929,10 @@ namespace CryptoNote
 
       if(is_peer_used(pe))
         continue;
+      
+      if (!is_remote_host_allowed(pe.adr.ip)) {
+        continue;
+      }
 
       logger(DEBUGGING) << "Selected peer: " << pe.id << " " << pe.adr << " [peer_list=" << (use_white_list ? white : gray)
                         << "] last_seen: " << (pe.last_seen ? Common::timeIntervalToString(time(NULL) - pe.last_seen) : "never");
@@ -1233,8 +1322,15 @@ namespace CryptoNote
   int NodeServer::handle_handshake(int command, COMMAND_HANDSHAKE::request& arg, COMMAND_HANDSHAKE::response& rsp, P2pConnectionContext& context)
   {
     context.version = arg.node_data.version;
+    
+    if (!is_remote_host_allowed(context.m_remote_ip)) {
+      logger(Logging::DEBUGGING) << context << "Banned node connected " << Common::ipAddressToString(context.m_remote_ip) << ", dropping connection.";
+      context.m_state = CryptoNoteConnectionContext::state_shutdown;
+      return 1;
+    }
 
     if (arg.node_data.network_id != m_network_id) {
+      add_host_fail(context.m_remote_ip);
       logger(Logging::INFO) << context << "WRONG NETWORK AGENT CONNECTED! id=" << arg.node_data.network_id;
       context.m_state = CryptoNoteConnectionContext::state_shutdown;
       return 1;
@@ -1249,6 +1345,7 @@ namespace CryptoNote
     }
 
     if(!context.m_is_income) {
+      add_host_fail(context.m_remote_ip);
       logger(Logging::DEBUGGING) << context << "COMMAND_HANDSHAKE came not from incoming connection";
       context.m_state = CryptoNoteConnectionContext::state_shutdown;
       return 1;
@@ -1314,6 +1411,11 @@ namespace CryptoNote
   }
   //-----------------------------------------------------------------------------------
 
+  bool NodeServer::log_banlist() {
+	  logger(INFO) << "Banned nodes:" << ENDL << print_banlist_to_string(m_blocked_hosts) << ENDL;
+	  return true;
+  }
+  //-----------------------------------------------------------------------------------
   bool NodeServer::log_connections() {
     logger(INFO) <<  "Connections: \r\n" << print_connections_container() ;
     return true;
