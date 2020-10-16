@@ -2,7 +2,7 @@
 > A private cryptographic currency with decentralised finance features.
 
 ![status](https://img.shields.io/badge/Status-Testnet-orange)
-![version](https://img.shields.io/badge/Version-0.0.3-blue)
+![version](https://img.shields.io/badge/Version-0.0.4-blue)
 
 ***
 

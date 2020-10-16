@@ -34,9 +34,8 @@ bool post_notify(IP2pEndpoint &p2p, typename t_parametr::request &arg, const Cry
 }
 
 template <class t_parametr>
-void relay_post_notify(IP2pEndpoint &p2p, typename t_parametr::request &arg, const net_connection_id *excludeConnection = nullptr)
-{
-  p2p.relay_notify_to_all(t_parametr::ID, LevinProtocol::encode(arg), excludeConnection);
+void relay_post_notify(IP2pEndpoint &p2p, typename t_parametr::request &arg, const net_connection_id *excludeConnection = nullptr) {
+  p2p.externalRelayNotifyToAll(t_parametr::ID, LevinProtocol::encode(arg), excludeConnection);
 }
 
 } // namespace
@@ -747,13 +746,13 @@ int CryptoNoteProtocolHandler::handleRequestTxPool(int command, NOTIFY_REQUEST_T
 void CryptoNoteProtocolHandler::relay_block(NOTIFY_NEW_BLOCK::request &arg)
 {
   auto buf = LevinProtocol::encode(arg);
-  m_p2p->externalRelayNotifyToAll(NOTIFY_NEW_BLOCK::ID, buf);
+  m_p2p->externalRelayNotifyToAll(NOTIFY_NEW_BLOCK::ID, buf, nullptr);
 }
 
 void CryptoNoteProtocolHandler::relay_transactions(NOTIFY_NEW_TRANSACTIONS::request &arg)
 {
   auto buf = LevinProtocol::encode(arg);
-  m_p2p->externalRelayNotifyToAll(NOTIFY_NEW_TRANSACTIONS::ID, buf);
+  m_p2p->externalRelayNotifyToAll(NOTIFY_NEW_TRANSACTIONS::ID, buf, nullptr);
 }
 
 void CryptoNoteProtocolHandler::requestMissingPoolTransactions(const CryptoNoteConnectionContext &context)
