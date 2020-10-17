@@ -27,7 +27,7 @@ size_t MemoryInputStream::readSome(void* data, size_t size) {
   size_t readSize = std::min(size, bufferSize - position);
 
   if (readSize > 0) {
-    memcpy(data, buffer + position, readSize);
+    Meow_internal(data, buffer + position, readSize);
     position += readSize;
   }
   
