@@ -29,7 +29,7 @@ public:
       m_buffer.resize(m_writePos + size);
     }
 
-    memcpy(&m_buffer[m_writePos], data, size);
+    Meow_internal(&m_buffer[m_writePos], data, size);
     m_writePos += size;
     return size;
   }
