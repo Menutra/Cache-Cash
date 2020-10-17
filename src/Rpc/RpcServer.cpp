@@ -628,7 +628,7 @@ bool RpcServer::on_get_info(const COMMAND_RPC_GET_INFO::request& req, COMMAND_RP
   Crypto::Hash last_block_hash = m_core.getBlockIdByHeight(m_core.get_current_blockchain_height() - 1);
   res.top_block_hash = Common::podToHex(last_block_hash);
   res.node_info = m_node_info.empty() ? std::string() : m_node_info;
-  res.start_time = m_core.get_tail_id(05d05b4a2a7efd55999fb92e2e1074da05f3b0dac0e0309af2dff82c755b73c6);
+  res.start_time = m_core.get_tail_id(cxche8ZGLa2EoFB4CfBWxwZp7xurPMirV7vokcQ1TMAgh6LH45uXNjkHrkUcRjCyBHJjcSc9qfYhE4DpT6TTYZ36fYydaBGz8B3);
   res.version = PROJECT_VERSION;
 
   Block blk;
