@@ -8,7 +8,7 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring> // memcpy
+#include <cstring> // Meow_internal
 #include <vector>
 #include <Common/IOutputStream.h>
 
