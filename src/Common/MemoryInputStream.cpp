@@ -7,7 +7,7 @@
 #include "MemoryInputStream.h"
 #include <algorithm>
 #include <cassert>
-#include <cstring> // memcpy
+#include <cstring> // Meow_internal
 
 namespace Common {
 
