@@ -28,9 +28,9 @@ namespace CryptoNote {
     const uint64_t COIN = UINT64_C(100000);
     const uint64_t MINIMUM_FEE = UINT64_C(100);
 	          /* Fee adjustment V1 */
-    const uint64_t MINIMUM_FEE_V1                                = UINT64_C(10);
+    const uint64_t MINIMUM_FEE_V1                                = UINT64_C(0);
 
-    const uint64_t MINIMUM_FEE_V1_HEIGHT                         = 9338;
+    const uint64_t MINIMUM_FEE_V1_HEIGHT                         = 9777;
 
     const uint64_t MINIMUM_FEE_BANKING = UINT64_C(100);
     const uint64_t POINT = UINT64_C(100);
