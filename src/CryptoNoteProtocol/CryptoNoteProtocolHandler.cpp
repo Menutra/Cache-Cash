@@ -169,9 +169,9 @@ uint32_t CryptoNoteProtocolHandler::get_current_blockchain_height()
   return height;
 }
 
-bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA &hshd, CryptoNoteConnectionContext &context, bool is_inital)
+bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA &hshd, CryptoNoteConnectionContext &context, bool is_initial)
 {
-  if (context.m_state == CryptoNoteConnectionContext::state_befor_handshake && !is_inital)
+  if (context.m_state == CryptoNoteConnectionContext::state_befor_handshake && !is_initial)
     return true;
 
   if (context.m_state == CryptoNoteConnectionContext::state_synchronizing)
@@ -179,7 +179,7 @@ bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA &
   }
   else if (m_core.have_block(hshd.top_id))
   {
-    if (is_inital)
+    if (is_initial)
     {
       on_connection_synchronized();
       context.m_state = CryptoNoteConnectionContext::state_pool_sync_required;
@@ -192,11 +192,20 @@ bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA &
   else
   {
     int64_t diff = static_cast<int64_t>(hshd.current_height) - static_cast<int64_t>(get_current_blockchain_height());
+    int8_t safeZone = 10;
 
-    logger(diff >= 0 ? (is_inital ? Logging::INFO : DEBUGGING) : Logging::TRACE)  << context << "Unknown top block: " << get_current_blockchain_height() << " -> " << hshd.current_height
-                                                                                          << std::endl
-                                                                                          
-                                                                                          << "Synchronization started";
+    // drop and eventually ban if peer is on fork too deep behind us 
+    if (diff < 0 && std::abs(diff) > safeZone && m_core.isInCheckpointZone(hshd.current_height)) {
+      logger(Logging::DEBUGGING) << context << "Sync data returned a new top block candidate: " << get_current_blockchain_height() << " -> " << hshd.current_height
+        << ". Your node is " << std::abs(diff) << " blocks (" << std::abs(diff) / (24 * 60 * 60 / m_currency.difficultyTarget()) << " days) "
+        << "ahead. The block candidate is too deep behind and in checkpoint zone, dropping connection";
+      m_p2p->drop_connection(context, true);
+    }
+
+    logger(diff >= 0 ? (is_initial ? Logging::INFO : Logging::DEBUGGING) : Logging::TRACE, Logging::BRIGHT_YELLOW) << context <<
+      "Sync data returned a new top block candidate: " << get_current_blockchain_height() << " -> " << hshd.current_height
+      << " [Your node is " << std::abs(diff) << " blocks (" << std::abs(diff) / (24 * 60 * 60 / m_currency.difficultyTarget()) << " days) "
+      << (diff >= 0 ? std::string("behind") : std::string("ahead")) << "] " << std::endl << "SYNCHRONIZATION started";
 
     logger(DEBUGGING) << "Remote top block height: " << hshd.current_height << ", id: " << hshd.top_id;
     //let the socket to send response to handshake, but request callback, to let send request data after response
@@ -207,7 +216,7 @@ bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA &
   updateObservedHeight(hshd.current_height, context);
   context.m_remote_blockchain_height = hshd.current_height;
 
-  if (is_inital)
+  if (is_initial)
   {
     m_peersCount++;
     m_observerManager.notify(&ICryptoNoteProtocolObserver::peerCountUpdated, m_peersCount.load());
