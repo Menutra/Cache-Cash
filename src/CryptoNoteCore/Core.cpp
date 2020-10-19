@@ -18,6 +18,7 @@
 #include "../Logging/LoggerRef.h"
 #include "../Rpc/CoreRpcServerCommandsDefinitions.h"
 #include "CryptoNoteFormatUtils.h"
+#include "CryptoNoteConfig.h"
 
 #include "CryptoNoteTools.h"
 #include "CryptoNoteStatInfo.h"
@@ -63,11 +64,11 @@ core::core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::
   m_mempool(currency, m_blockchain, m_timeProvider, logger),
   m_blockchain(currency, m_mempool, logger, blockchainIndexesEnabled),
   m_miner(new miner(currency, *this, logger)),
-  m_starter_message_showed(false) {
-
-  set_cryptonote_protocol(pprotocol);
-  m_blockchain.addObserver(this);
-  m_mempool.addObserver(this);
+  m_starter_message_showed(false),
+  m_checkpoints(logger) {
+    set_cryptonote_protocol(pprotocol);
+    m_blockchain.addObserver(this);
+    m_mempool.addObserver(this);
   }
   //-----------------------------------------------------------------------------------------------
   core::~core() {
@@ -84,6 +85,11 @@ void core::set_cryptonote_protocol(i_cryptonote_protocol* pprotocol) {
 //-----------------------------------------------------------------------------------
 void core::set_checkpoints(Checkpoints&& chk_pts) {
   m_blockchain.setCheckpoints(std::move(chk_pts));
+  m_checkpoints = std::move(chk_pts);
+}
+//-----------------------------------------------------------------------------------
+bool core::isInCheckpointZone(uint32_t height) const {
+  return m_checkpoints.is_in_checkpoint_zone(height);
 }
 //-----------------------------------------------------------------------------------
 void core::init_options(boost::program_options::options_description& /*desc*/) {
@@ -1014,9 +1020,49 @@ uint64_t core::depositInterestAtHeight(size_t height) const {
   return m_blockchain.depositInterestAtHeight(height);
 }
 
+bool core::check_tx_fee(const Transaction& tx, size_t blobSize, tx_verification_context& tvc) {
+  uint64_t inputs_amount = 0;
+  if (!get_inputs_money_amount(tx, inputs_amount)) {
+    tvc.m_verification_failed = true;
+    return false;
+  }
+
+  uint64_t outputs_amount = get_outs_money_amount(tx);
+
+  if (outputs_amount > inputs_amount) {
+    logger(DEBUGGING) << "transaction use more money then it has: use " << m_currency.formatAmount(outputs_amount) <<
+      ", have " << m_currency.formatAmount(inputs_amount);
+    tvc.m_verification_failed = true;
+    return false;
+  }
+
+  Crypto::Hash h = NULL_HASH;
+  getObjectHash(tx, h, blobSize);
+  const uint64_t fee = inputs_amount - outputs_amount;
+  bool enough = true;
+  uint64_t min = CryptoNote::parameters::MINIMUM_FEE;
+  if (fee < (min - min * 20 / 100)) {
+    logger(INFO) << "[Core] Transaction fee is not enough: " << m_currency.formatAmount(fee) << ", minimum fee: " << m_currency.formatAmount(min);
+    enough = false;
+  }
+
+  if (!enough) {
+    tvc.m_verification_failed = true;
+    tvc.m_tx_fee_too_small = true;
+    return false;
+  }
+
+  return true;
+}
+
 bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& txHash, size_t blobSize, tx_verification_context& tvc, bool keptByBlock, uint32_t height) {
   if (!check_tx_syntax(tx)) {
     logger(INFO) << "<< Core.cpp << " << "WRONG TRANSACTION BLOB, Failed to check tx " << txHash << " syntax, rejected";
+    tvc.m_verification_failed = true;
+    return false;
+  }
+
+  if (!check_tx_fee(tx, blobSize, tvc)) {
     tvc.m_verification_failed = true;
     return false;
   }

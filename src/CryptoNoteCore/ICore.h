@@ -108,6 +108,8 @@ public:
 
   virtual bool addMessageQueue(MessageQueue<BlockchainMessage>& messageQueue) = 0;
   virtual bool removeMessageQueue(MessageQueue<BlockchainMessage>& messageQueue) = 0;
+
+  virtual bool isInCheckpointZone(uint32_t height) const = 0;
 };
 
 } //namespace CryptoNote

@@ -24,6 +24,7 @@
 #include "System/Dispatcher.h"
 #include "CryptoNoteCore/MessageQueue.h"
 #include "CryptoNoteCore/BlockchainMessages.h"
+#include "CryptoNoteCore/Checkpoints.h"
 
 #include <Logging/LoggerMessage.h>
 
@@ -77,6 +78,7 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
      virtual bool getTransactionsByPaymentId(const Crypto::Hash& paymentId, std::vector<Transaction>& transactions) override;
      virtual bool getOutByMSigGIndex(uint64_t amount, uint64_t gindex, MultisignatureOutput& out) override;
      virtual std::unique_ptr<IBlock> getBlock(const Crypto::Hash& blocksId) override;
+     virtual bool check_tx_fee(const Transaction& tx, size_t blobSize, tx_verification_context& tvc);// override;
      virtual bool handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& txHash, size_t blobSize, tx_verification_context& tvc, bool keptByBlock, uint32_t height) override;
      virtual std::error_code executeLocked(const std::function<std::error_code()>& func) override;
      
@@ -115,6 +117,7 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
 
      void set_cryptonote_protocol(i_cryptonote_protocol* pprotocol);
      void set_checkpoints(Checkpoints&& chk_pts);
+     virtual bool isInCheckpointZone(uint32_t height) const override;
 
      std::vector<Transaction> getPoolTransactions() override;
      size_t get_pool_transactions_count();
@@ -190,5 +193,6 @@ core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogge
      std::atomic<bool> m_starter_message_showed;
      Tools::ObserverManager<ICoreObserver> m_observerManager;
      time_t start_time;
+     Checkpoints m_checkpoints;
    };
 }
