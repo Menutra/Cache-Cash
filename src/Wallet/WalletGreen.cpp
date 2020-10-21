@@ -409,7 +409,7 @@ namespace CryptoNote
     }
 
     transactionHash = Common::podToHex(transaction->getTransactionHash());
-    size_t id = validateSaveAndSendTransaction(*transaction, {}, false, true);
+    validateSaveAndSendTransaction(*transaction, {}, false, true);
   }
 
   std::vector<MultisignatureInput> WalletGreen::prepareMultisignatureInputs(const std::vector<TransactionOutputInformation> &selectedTransfers)
@@ -492,11 +492,11 @@ namespace CryptoNote
      which includes the term, and then after that the change outputs */
 
     /* Add the deposit outputs to the transaction */
-    auto depositIndex = transaction->addOutput(
-        neededMoney - fee,
-        {destAddr},
-        1,
-        term);
+    transaction->addOutput(
+      neededMoney - fee,
+      {destAddr},
+      1,
+      term);
 
     /* Let's add the change outputs to the transaction */
 
@@ -588,7 +588,7 @@ namespace CryptoNote
 
     /* Return the transaction hash */
     transactionHash = Common::podToHex(transaction->getTransactionHash());
-    size_t id = validateSaveAndSendTransaction(*transaction, {}, false, true);
+    validateSaveAndSendTransaction(*transaction, {}, false, true);
   }
 
   void WalletGreen::validateOrders(const std::vector<WalletOrder> &orders) const
@@ -913,8 +913,6 @@ namespace CryptoNote
       dst.setAutoFlush(true);
       dst.flush();
     });
-
-    size_t counter = 0;
 
     for (auto &encryptedSpendKeys : src)
     {
@@ -1991,7 +1989,7 @@ namespace CryptoNote
 
       if (id != WALLET_INVALID_TRANSACTION_ID)
       {
-        auto &tx = m_transactions[id];
+        m_transactions[id];
       }
     });
 
@@ -2170,6 +2168,9 @@ namespace CryptoNote
     });
 
     assert(r);
+    if (!r) {
+      std::cout << "Unable to update wallet deposit information." << std::endl;
+    }
 
     return updated;
   }
@@ -2234,6 +2235,9 @@ namespace CryptoNote
     });
 
     assert(r);
+    if (!r) {
+      std::cout << "Unable to update wallet transaction information." << std::endl;
+    }
 
     return updated;
   }
@@ -3704,6 +3708,9 @@ namespace CryptoNote
       TransactionInformation info;
       bool ok = container->getTransactionInformation(hash, info, NULL, NULL);
       assert(ok);
+      if (!ok) {
+        std::cout << "Unable to get transaction information" << std::endl;
+      }
       heights.push_back(info.blockHeight);
     }
     uint64_t unlocked = calculateDepositsAmount(transfers, m_currency, heights);
@@ -3832,7 +3839,7 @@ namespace CryptoNote
 
       if (id != WALLET_INVALID_TRANSACTION_ID)
       {
-        auto &tx = m_transactions[id];
+        m_transactions[id];
       }
     });
 
