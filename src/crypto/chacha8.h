@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define CHACHA8_KEY_SIZE 32
+#define CHACHA8_KEY_SIZE 64
 #define CHACHA8_IV_SIZE 8
 
 #if defined(__cplusplus)
