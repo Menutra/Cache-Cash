@@ -14,7 +14,7 @@
 #include <boost/program_options/variables_map.hpp>
 
 #include "IWalletLegacy.h"
-#include "PasswordContainer.h"
+#include "Common/PasswordContainer.h"
 #include "TransferCommand.h"
 
 #include "Common/ConsoleHandler.h"
