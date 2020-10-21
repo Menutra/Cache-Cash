@@ -339,26 +339,6 @@ bool processServerAliasResponse(const std::string& s, std::string& address) {
 	return true;
 }
 
-bool splitUrlToHostAndUri(const std::string& aliasUrl, std::string& host, std::string& uri) {
-  size_t protoBegin = aliasUrl.find("http://");
-  if (protoBegin != 0 && protoBegin != std::string::npos) {
-    return false;
-  }
-
-  size_t hostBegin = protoBegin == std::string::npos ? 0 : 7; //strlen("http://")
-  size_t hostEnd = aliasUrl.find('/', hostBegin);
-
-  if (hostEnd == std::string::npos) {
-    uri = "/";
-    host = aliasUrl.substr(hostBegin);
-  } else {
-    uri = aliasUrl.substr(hostEnd);
-    host = aliasUrl.substr(hostBegin, hostEnd - hostBegin);
-  }
-
-  return true;
-}
-
 bool askAliasesTransfersConfirmation(const std::map<std::string, std::vector<WalletLegacyTransfer>>& aliases, const Currency& currency) {
   std::cout << "Would you like to send money to the following addresses?" << std::endl;
 
@@ -380,26 +360,24 @@ bool askAliasesTransfersConfirmation(const std::map<std::string, std::vector<Wal
   return c == 'y';
 }
 
+bool processServerFeeAddressResponse(const std::string& response, std::string& fee_address) {
+  try {
+    std::stringstream stream(response);
+    JsonValue json;
+    stream >> json;
+
+    auto rootIt = json.getObject().find("fee_address");
+    if (rootIt == json.getObject().end())
+      return false;
+
+    fee_address = rootIt->second.getString();
+  } catch (std::exception&) {
+    return false;
+  }
+
+  return true;
 }
 
-bool processServerFeeAddressResponse(const std::string& response, std::string& fee_address) {
-    try {
-        std::stringstream stream(response);
-        JsonValue json;
-        stream >> json;
-
-        auto rootIt = json.getObject().find("fee_address");
-        if (rootIt == json.getObject().end()) {
-            return false;
-        }
-
-        fee_address = rootIt->second.getString();
-    }
-    catch (std::exception&) {
-        return false;
-    }
-
-    return true;
 }
 
 std::string simple_wallet::get_commands_str() {
@@ -453,8 +431,8 @@ simple_wallet::simple_wallet(System::Dispatcher& dispatcher, const CryptoNote::C
   m_consoleHandler.setHandler("save", boost::bind(&simple_wallet::save, this, _1), "Save wallet synchronized data");
   m_consoleHandler.setHandler("reset", boost::bind(&simple_wallet::reset, this, _1), "Discard cache data and start synchronizing from the start");
   m_consoleHandler.setHandler("help", boost::bind(&simple_wallet::help, this, _1), "Show this help");
-  m_consoleHandler.setHandler("exit", boost::bind(&simple_wallet::exit, this, _1), "Close wallet");  
   m_consoleHandler.setHandler("get_reserve_proof", boost::bind(&simple_wallet::get_reserve_proof, this, _1), "all|<amount> [<message>] - Generate a signature proving that you own at least <amount>, optionally with a challenge string <message>. ");
+  m_consoleHandler.setHandler("exit", boost::bind(&simple_wallet::exit, this, _1), "Close wallet");
 }
 
 /* This function shows the number of outputs in the wallet
