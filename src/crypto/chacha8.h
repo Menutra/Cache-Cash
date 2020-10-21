@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #define CHACHA8_KEY_SIZE 64
-#define CHACHA8_IV_SIZE 8
+#define CHACHA8_IV_SIZE 16
 
 #if defined(__cplusplus)
 #include <memory.h>
