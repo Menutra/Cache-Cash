@@ -47,8 +47,8 @@ namespace Crypto {
 
     cn_context()
     {
-        long_state = (uint8_t*)boost::alignment::aligned_alloc(4096, CN_PAGE_SIZE);
-        hash_state = (uint8_t*)boost::alignment::aligned_alloc(4096, 4096);
+        long_state = (uint16_t*)boost::alignment::aligned_alloc(4096, CN_PAGE_SIZE);
+        hash_state = (uint16_t*)boost::alignment::aligned_alloc(4096, 4096);
     }
 
     ~cn_context()
@@ -62,8 +62,8 @@ namespace Crypto {
     cn_context(const cn_context &) = delete;
     void operator=(const cn_context &) = delete;
 
-     uint8_t* long_state = nullptr;
-     uint8_t* hash_state = nullptr;
+     uint16_t* long_state = nullptr;
+     uint16_t* hash_state = nullptr;
   };
 
   void cn_slow_hash(cn_context &context, const void *data, size_t length, Hash &hash);
