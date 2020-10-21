@@ -65,7 +65,7 @@ void chacha8(const void* data, size_t length, const uint8_t* key, const uint8_t*
 
   for (;;) {
     if (length < 64) {
-      Meow_internal(tmp, data, length);
+      memcpy(tmp, data, length);
       data = tmp;
       ctarget = cipher;
       cipher = tmp;
@@ -156,7 +156,7 @@ void chacha8(const void* data, size_t length, const uint8_t* key, const uint8_t*
 
     if (length <= 64) {
       if (length < 64) {
-        Meow_internal(ctarget, cipher, length);
+        memcpy(ctarget, cipher, length);
       }
       return;
     }
