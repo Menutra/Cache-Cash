@@ -7,7 +7,7 @@
 #include "MemoryInputStream.h"
 #include <algorithm>
 #include <cassert>
-#include <cstring> // Meow_internal
+#include <cstring> // memcpy
 
 namespace Common {
 
@@ -27,7 +27,7 @@ size_t MemoryInputStream::readSome(void* data, size_t size) {
   size_t readSize = std::min(size, bufferSize - position);
 
   if (readSize > 0) {
-    Meow_internal(data, buffer + position, readSize);
+    memcpy(data, buffer + position, readSize);
     position += readSize;
   }
   
