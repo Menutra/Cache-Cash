@@ -7,7 +7,9 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <initializer_list>
 
 namespace CryptoNote {
@@ -15,6 +17,7 @@ namespace CryptoNote {
     const uint64_t MAX_BLOCK_NUMBER = 500000000;
     const size_t   MAX_BLOCK_BLOB_SIZE = 500000000;
     const size_t   MAX_TX_SIZE = 1000000000;
+    const size_t   MAX_SAFE_TX_SIZE = 115000;
 
     /* cxche address prefix */
     const uint64_t PUBLIC_ADDRESS_BASE58_PREFIX = 0x29c7dd6;
@@ -23,13 +26,17 @@ namespace CryptoNote {
     const uint64_t DEFAULT_TX_SPENDABLE_AGE = 10;
 
     const uint64_t MONEY_SUPPLY = UINT64_C(50000000000000);
-    const size_t   MINIMUM_MIXIN = 4;
     const size_t   DECIMAL_POINT = 5;
     const uint64_t COIN = UINT64_C(100000);
+    const uint64_t POINT = UINT64_C(100);
+
     const uint64_t MINIMUM_FEE = UINT64_C(100);
     const uint64_t MINIMUM_FEE_BANKING = UINT64_C(100);
-    const uint64_t POINT = UINT64_C(100);
     const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(10);
+
+    /* during mainnet, we'll change min_mix to 0 and default to 5 */
+    const size_t   MINIMUM_MIXIN = 4;
+    const uint16_t DEFAULT_MIXIN = MINIMUM_MIXIN;
 
     const uint64_t MULTIPLIER_FACTOR = 100;
     const uint32_t END_MULTIPLIER_BLOCK = 12750;

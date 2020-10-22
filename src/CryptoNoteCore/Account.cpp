@@ -24,6 +24,11 @@ void AccountBase::generateViewFromSpend(Crypto::SecretKey &spend, Crypto::Secret
   Crypto::generate_keys_from_seed(viewPublic, viewSecret, viewKeySeed);
 }
 //-----------------------------------------------------------------
+void AccountBase::generateViewFromSpend(Crypto::SecretKey &spend, Crypto::SecretKey &viewSecret) {
+  Crypto::PublicKey unused_dummy_variable;
+  generateViewFromSpend(spend, viewSecret, unused_dummy_variable);
+}
+//-----------------------------------------------------------------
 void AccountBase::generate() {
   Crypto::generate_keys(m_keys.address.spendPublicKey, m_keys.spendSecretKey);
   generateViewFromSpend(m_keys.spendSecretKey, m_keys.viewSecretKey, m_keys.address.viewPublicKey);
