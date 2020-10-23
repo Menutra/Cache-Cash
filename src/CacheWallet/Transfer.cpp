@@ -54,16 +54,45 @@ bool parseAmount(std::string strAmount, uint64_t &amount)
 bool confirmTransaction(CryptoNote::TransactionParameters t,
                         std::shared_ptr<WalletInfo> walletInfo)
 {
-    std::cout << std::endl << YellowMsg("Confirm Transaction?") << std::endl;
+    
+    std::cout << std::endl
+              << InformationMsg("Confirm Transaction?") << std::endl;
 
-    std::cout << "You are sending " 
-              << GreenMsg(formatAmount(t.destinations[0].amount))
-              << ", with a fee of " << GreenMsg(formatAmount(t.fee))
+    std::string paymentId = "";
+
+    if (t.extra.length() > 0)
+    {
+        std::vector<uint8_t> vecExtra;
+
+        for (auto it : t.extra)
+        {
+            vecExtra.push_back(static_cast<uint8_t>(it));
+        }
+
+        Crypto::Hash paymentIdHash;
+        CryptoNote::getPaymentIdFromTxExtra(vecExtra, paymentIdHash);
+        paymentId = Common::podToHex(paymentIdHash);
+    }
+
+    std::cout << "You are sending "
+              << SuccessMsg(formatAmount(t.destinations[0].amount))
+              << ", with a fee of " << SuccessMsg(formatAmount(t.fee))
+              << ", " << std::endl;
+
+    if (paymentId != "")
+    {
+        std::cout << "A mixin of " << SuccessMsg(std::to_string(t.mixIn))
+                  << " and a Payment ID of " << SuccessMsg(paymentId);
+    }
+    else
+    {
+        std::cout << "And a mixin of " << SuccessMsg(std::to_string(t.mixIn));
+    }
+
+    std::cout << std::endl << std::endl
+              << "FROM: " << InformationMsg(walletInfo->walletFileName)
               << std::endl
-              << "FROM: " << YellowMsg(walletInfo->walletFileName) 
-              << std::endl
-              << "TO: " << std::endl
-              << YellowMsg(t.destinations[0].address)
+              << "TO: " << InformationMsg(t.destinations[0].address)
               << std::endl << std::endl;
 
     if (confirm("Is this correct?"))
@@ -180,8 +209,8 @@ void splitTx(CryptoNote::WalletGreen &wallet,
                  (std::ceil(double(txSize) / double(maxSize))));
 
         /* Split the requested fee over each transaction, i.e. if a fee of 200
-           TRTL was requested and we split it into 4 transactions each one will
-           have a fee of 5TRTL. If the fee per transaction is less than the min
+           $CXCHE was requested and we split it into 4 transactions each one will
+           have a fee of 5$CXCHE. If the fee per transaction is less than the min
            fee, use the min fee. */
         uint64_t feePerTx = std::max (p.fee / numTransactions, minFee);
 
@@ -823,7 +852,7 @@ void doTransfer(uint16_t mixin, std::string address, uint64_t amount,
             {
                 std::cout << WarningMsg("Couldn't connect to the network to "
                                         "send the transaction!") << std::endl
-                          << "Ensure turtlecoind or the remote node you are "
+                          << "Ensure cache-daemon or the remote node you are "
                           << "using is open and functioning." << std::endl;
             }
             else if (retried)
@@ -899,7 +928,7 @@ uint64_t getFee()
     {
         std::string stringAmount;
         std::cout << std::endl << YellowMsg("What fee do you want to use?")
-                  << std::endl << "Hit enter for the default fee of 0.1 TRTL: ";
+                  << std::endl << "Hit enter for the default fee of 0.001 $CXCHE: ";
 
         std::getline(std::cin, stringAmount);
 
@@ -948,7 +977,7 @@ uint64_t getTransferAmount()
         std::string stringAmount;
 
         std::cout << std::endl
-                  << YellowMsg("How much TRTL do you want to send?: ");
+                  << YellowMsg("How much $CXCHE do you want to send?: ");
 
         std::getline(std::cin, stringAmount);
 
@@ -991,7 +1020,7 @@ bool parseFee(std::string feeString)
     }
     else if (fee < CryptoNote::parameters::MINIMUM_FEE)
     {
-        std::cout << RedMsg("Fee must be at least 0.1 TRTL!") << std::endl;
+        std::cout << RedMsg("Fee must be at least 0.001 $CXCHE!") << std::endl;
         return false;
     }
 
@@ -1034,11 +1063,11 @@ bool parseAddress(std::string address)
         return false;
     }
     /* Can't see an easy way to go from prefix num -> prefix string, so for
-       now just hard code "TRTL" - it will let testers send stuff at least */
+       now just hard code "cxche" - it will let testers send stuff at least */
     else if (prefix != expectedPrefix)
     {
         std::cout << RedMsg("Invalid address! It should start with "
-                            "\"TRTL\"!") << std::endl;
+                            "\"cxche\"!") << std::endl;
 
         return false;
     }
@@ -1084,8 +1113,8 @@ bool parseAmount(std::string amountString)
     {
         std::cout << RedMsg("Failed to parse amount! Ensure you entered the "
                             "value correctly.") << std::endl
-                  << "Please note, the minimum you can send is 0.01 TRTL, "
-                  << "and you can only use 2 decimal places."
+                  << "Please note, the minimum you can send is 0.001 $CXCHE, "
+                  << "and you can only use 5 decimal places."
                   << std::endl;
         return false;
     }

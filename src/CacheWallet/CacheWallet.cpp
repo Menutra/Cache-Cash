@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     System::Dispatcher localDispatcher;
     System::Dispatcher *dispatcher = &localDispatcher;
 
-    /* Our connection to turtlecoind */
+    /* Our connection to cache-daemon */
     std::unique_ptr<CryptoNote::INode> node(
         new CryptoNote::NodeRpcProxy(config.host, config.port));
 
@@ -48,9 +48,35 @@ int main(int argc, char **argv)
 
     node->init(callback);
 
-    if (error.get())
+    std::future<void> initNode = std::async(std::launch::async, [&] {
+            if (error.get())
+            {
+                throw std::runtime_error("Failed to initialize node!");
+            }
+    });
+
+    std::future_status status = initNode.wait_for(std::chrono::seconds(20));
+
+    /* Connection took to long to remote node, let program continue regardless
+       as they could perform functions like export_keys without being
+       connected */
+    if (status != std::future_status::ready)
     {
-        throw std::runtime_error("Failed to initialize node!");
+        if (config.host != "127.0.0.1")
+        {
+            std::cout << WarningMsg("Unable to connect to remote node, "
+                                    "connection timed out.")
+                      << std::endl
+                      << WarningMsg("Confirm the remote node is functioning, "
+                                    "or try a different remote node.")
+                      << std::endl << std::endl;
+        }
+        else
+        {
+            std::cout << WarningMsg("Unable to connect to node, "
+                                    "connection timed out.")
+                      << std::endl << std::endl;
+        }
     }
 
     /* Create the wallet instance */
@@ -64,13 +90,23 @@ int main(int argc, char **argv)
 void run(CryptoNote::WalletGreen &wallet, CryptoNote::INode &node,
          Config &config)
 {
-    std::cout << YellowMsg("TurtleCoin v" + std::string(PROJECT_VERSION)
-                         + " Simplewallet") << std::endl;
+    auto maybeWalletInfo = Nothing<std::shared_ptr<WalletInfo>>();
+    Action action;
 
-    /* Open/import/generate the wallet */
-    Action action = getAction(config);
-    std::shared_ptr<WalletInfo> walletInfo = handleAction(wallet, action, 
-                                                          config);
+    do
+    {
+        std::cout << InformationMsg("Cache v"
+                                  + std::string(PROJECT_VERSION)
+                                  + " Wallet Beta") << std::endl;
+
+        /* Open/import/generate the wallet */
+        action = getAction(config);
+        maybeWalletInfo = handleAction(wallet, action, config);
+
+    /* Didn't manage to get the wallet info, returning to selection screen */
+    } while (!maybeWalletInfo.isJust);
+
+    auto walletInfo = maybeWalletInfo.x;
 
     bool alreadyShuttingDown = false;
 
@@ -86,15 +122,15 @@ void run(CryptoNote::WalletGreen &wallet, CryptoNote::INode &node,
 
     while (node.getLastKnownBlockHeight() == 0)
     {
-        std::cout << RedMsg("It looks like TurtleCoind isn't open!")
+        std::cout << RedMsg("It looks like cache-daemon isn't open!")
                   << std::endl << std::endl
-                  << RedMsg("Ensure TurtleCoind is open and has finished "
+                  << RedMsg("Ensure cache-daemon is open and has finished "
                             "initializing.")
                   << std::endl
                   << RedMsg("If it's still not working, try restarting "
-                            "TurtleCoind. The daemon sometimes gets stuck.") 
+                            "cache-daemon. The daemon sometimes gets stuck.") 
                   << std::endl
-                  << RedMsg("Alternatively, perhaps TurtleCoind can't "
+                  << RedMsg("Alternatively, perhaps cache-daemon can't "
                             "communicate with any peers.")
                   << std::endl << std::endl
                   << RedMsg("The wallet can't function until it can "
@@ -173,12 +209,12 @@ void run(CryptoNote::WalletGreen &wallet, CryptoNote::INode &node,
     shutdown(walletInfo->wallet, node, alreadyShuttingDown);
 }
 
-std::shared_ptr<WalletInfo> handleAction(CryptoNote::WalletGreen &wallet,
-                                         Action action, Config &config)
+Maybe<std::shared_ptr<WalletInfo>> handleAction(CryptoNote::WalletGreen &wallet,
+                                                Action action, Config &config)
 {
     if (action == Generate)
     {
-        return generateWallet(wallet);
+        return Just<std::shared_ptr<WalletInfo>>(generateWallet(wallet));
     }
     else if (action == Open)
     {
@@ -186,7 +222,7 @@ std::shared_ptr<WalletInfo> handleAction(CryptoNote::WalletGreen &wallet,
     }
     else if (action == Import)
     {
-        return importWallet(wallet);
+        return Just<std::shared_ptr<WalletInfo>>(importWallet(wallet));
     }
     else if (action == SeedImport)
     {
@@ -234,7 +270,7 @@ std::shared_ptr<WalletInfo> importFromKeys(CryptoNote::WalletGreen &wallet,
     std::string walletFileName = getNewWalletFileName();
     std::string walletPass = getWalletPassword(true);
 
-    std::cout << std::endl << "Making initial contact with TurtleCoind."
+    std::cout << std::endl << "Making initial contact with cache-daemon."
               << std::endl << "Please note, this sometimes can take a long "
               << "time." << std::endl << "Please wait..." << std::endl
               << std::endl;
@@ -256,7 +292,7 @@ std::shared_ptr<WalletInfo> generateWallet(CryptoNote::WalletGreen &wallet)
     std::string walletFileName = getNewWalletFileName();
     std::string walletPass = getWalletPassword(true);
 
-    std::cout << std::endl << "Making initial contact with TurtleCoind."
+    std::cout << std::endl << "Making initial contact with cache-daemon."
               << std::endl << "Please note, this sometimes can take a long "
               << "time." << std::endl << "Please wait..." << std::endl
               << std::endl;
@@ -281,8 +317,8 @@ std::shared_ptr<WalletInfo> generateWallet(CryptoNote::WalletGreen &wallet)
                                         walletAddress, wallet);
 }
 
-std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
-                                       Config &config)
+Maybe<std::shared_ptr<WalletInfo>> openWallet(CryptoNote::WalletGreen &wallet,
+                                              Config &config)
 {
     std::string walletFileName = getExistingWalletFileName(config);
 
@@ -305,7 +341,7 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
 
         initial = false;
 
-        std::cout << std::endl << "Making initial contact with TurtleCoind."
+        std::cout << std::endl << "Making initial contact with cache-daemon."
                   << std::endl << "Please note, this sometimes can take a "
                   << "long time." << std::endl << "Please wait..."
                   << std::endl << std::endl;
@@ -320,8 +356,11 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
                       << YellowMsg("Your wallet " + walletAddress
                                  + " has been successfully opened!\n\n");
 
-            return std::make_shared<WalletInfo>(walletFileName, walletPass, 
-                                                walletAddress, wallet);
+                return Just<std::shared_ptr<WalletInfo>>
+                           (std::make_shared<WalletInfo>(walletFileName,
+                                                         walletPass, 
+                                                         walletAddress,
+                                                         wallet));
         }
         catch (const std::system_error& e)
         {
@@ -339,6 +378,9 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
             std::string alreadyOpenMsg =
                 "MemoryMappedFile::open: The process cannot access the file "
                 "because it is being used by another process.";
+
+            std::string notAWalletMsg =
+                "Unsupported wallet version: Wrong version";
 
             std::string errorMsg = e.what();
                 
@@ -365,18 +407,41 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
                           << WarningMsg("Also check you don't have another "
                                         "wallet program open, such as a GUI "
                                         "wallet or walletd.")
+                          << std::endl << std::endl;
+
+                std::cout << "Returning to selection screen..." << std::endl
                           << std::endl;
 
-                std::cout << "Hit any key to exit: ";
-                std::cin.get();
-                exit(0);
+                return Nothing<std::shared_ptr<WalletInfo>>();
+            }
+            else if (errorMsg == notAWalletMsg)
+            {
+                std::cout << WarningMsg("Could not open wallet file! It "
+                                        "doesn't appear to be a valid wallet!")
+                          << std::endl
+                          << WarningMsg("Ensure you are opening a wallet "
+                                        "file, and the file has not gotten "
+                                        "corrupted.")
+                          << std::endl
+                          << WarningMsg("Try reimporting via keys, and always "
+                                        "close simplewallet with the exit "
+                                        "command to prevent corruption.")
+                          << std::endl << std::endl;
+                std::cout << "Returning to selection screen..." << std::endl
+                          << std::endl;
+
+                return Nothing<std::shared_ptr<WalletInfo>>();
             }
             else
             {
                 std::cout << "Unexpected error: " << errorMsg << std::endl;
-                std::cout << "Hit any key to exit: ";
-                std::cin.get();
-                throw(e);
+                std::cout << "Please report this error message and what "
+                          << "you did to cause it." << std::endl << std::endl;
+
+                std::cout << "Returning to selection screen..." << std::endl
+                          << std::endl;
+
+                return Nothing<std::shared_ptr<WalletInfo>>();
             }
         }
     }
@@ -746,7 +811,7 @@ void inputLoop(std::shared_ptr<WalletInfo> &walletInfo, CryptoNote::INode &node)
         std::string command = getInputAndDoWorkWhileIdle(walletInfo);
 
         /* Split into args to support legacy transfer command, for example
-           transfer 5 TRTLxyz... 100, sends 100 TRTL to TRTLxyz... with a mixin
+           transfer 5 cxchexyz... 100, sends 100 $CXCHE to cxchexyz... with a mixin
            of 5 */
         std::vector<std::string> words;
         words = boost::split(words, command, ::isspace);
@@ -845,7 +910,7 @@ void help()
               << GreenMsg("bc_height", 25)
               << "Show the blockchain height" << std::endl
               << GreenMsg("balance", 25)
-              << "Display how much TRTL you have" << std::endl
+              << "Display how much $CXCHE you have" << std::endl
               << GreenMsg("export_keys", 25)
               << "Export your private keys" << std::endl
               << GreenMsg("address", 25)
@@ -857,7 +922,7 @@ void help()
               << GreenMsg("list_transfers", 25)
               << "Show all transfers" << std::endl
               << GreenMsg("transfer", 25)
-              << "Send TRTL to someone" << std::endl
+              << "Send $CXCHE to someone" << std::endl
               << SuccessMsg("save", 25)
               << "Save your wallet state" << std::endl
               << GreenMsg("exit", 25)
@@ -937,7 +1002,7 @@ void blockchainHeight(CryptoNote::INode &node, CryptoNote::WalletGreen &wallet)
 
     if (localHeight == 0 && remoteHeight == 0)
     {
-        std::cout << "Uh oh, it looks like you don't have TurtleCoind open!"
+        std::cout << "Uh oh, it looks like you don't have cache-daemon open!"
                   << std::endl;
     }
     else if (localHeight == remoteHeight)
@@ -1004,17 +1069,21 @@ bool shutdown(CryptoNote::WalletGreen &wallet, CryptoNote::INode &node, bool &al
 
 void printOutgoingTransfer(CryptoNote::WalletTransaction t)
 {
-    std::cout << RedMsg("Outgoing transfer: " + Common::podToHex(t.hash) +
-                        "\nSpent: " + formatAmount(-t.totalAmount - t.fee) + 
-                        "\nFee: " + formatAmount(t.fee) +
-                        "\nTotal Spent: " + formatAmount(-t.totalAmount)) 
+    std::cout << WarningMsg("Outgoing transfer: " + Common::podToHex(t.hash))
+              << std::endl
+              << WarningMsg("Spent: " + formatAmount(-t.totalAmount - t.fee))
+              << std::endl
+              << WarningMsg("Fee: " + formatAmount(t.fee))
+              << std::endl
+              << WarningMsg("Total Spent: " + formatAmount(-t.totalAmount))
               << std::endl << std::endl;
 }
 
 void printIncomingTransfer(CryptoNote::WalletTransaction t)
 {
-    std::cout << GreenMsg("Incoming transfer: " + Common::podToHex(t.hash) +
-                          "\nAmount: " + formatAmount(t.totalAmount))
+    std::cout << SuccessMsg("Incoming transfer: " + Common::podToHex(t.hash))
+              << std::endl
+              << SuccessMsg("Amount: " + formatAmount(t.totalAmount))
               << std::endl << std::endl;
 }
 
@@ -1074,9 +1143,10 @@ void checkForNewTransactions(std::shared_ptr<WalletInfo> &walletInfo)
                           << InformationMsg("New transaction found!")
                           << std::endl
                           << SuccessMsg("Incoming transfer: " 
-                                    + Common::podToHex(t.hash) +
-                                      "\nAmount: " 
-                                    + formatAmount(t.totalAmount))
+                                      + Common::podToHex(t.hash))
+                          << std::endl
+                          << SuccessMsg("Amount: "
+                                      + formatAmount(t.totalAmount))
                           << std::endl
                           << getPrompt(walletInfo)
                           << std::flush;
@@ -1114,7 +1184,7 @@ void findNewTransactions(CryptoNote::INode &node,
 
     if (localHeight != remoteHeight)
     {
-        std::cout << "Your TurtleCoind isn't fully synced yet!" << std::endl
+        std::cout << "Your cache-daemon isn't fully synced yet!" << std::endl
                   << "Until you are fully synced, you won't be able to send "
                   << "transactions, and your balance may be missing or "
                   << "incorrect!" << std::endl << std::endl;
@@ -1149,6 +1219,8 @@ void findNewTransactions(CryptoNote::INode &node,
 
     while (walletHeight < localHeight)
     {
+        int counter = 1;
+
         /* This MUST be called on the main thread! */
         walletInfo->wallet.updateInternalCache();
 
@@ -1161,6 +1233,13 @@ void findNewTransactions(CryptoNote::INode &node,
         uint32_t tmpWalletHeight = walletInfo->wallet.getBlockCount();
 
         int waitSeconds = 1;
+        /* Save periodically so if someone closes before completion they don't
+           lose all their progress */
+        if (counter % 60 == 0)
+        {
+            walletInfo->wallet.save();
+        }
+
         if (tmpWalletHeight == walletHeight)
         {
             stuckCounter++;
@@ -1169,9 +1248,9 @@ void findNewTransactions(CryptoNote::INode &node,
             if (stuckCounter > 20)
             {
                 std::string warning =
-                    "Syncing may be stuck. Try restarting Turtlecoind.\n"
+                    "Syncing may be stuck. Try restarting cache-daemon.\n"
                     "If this persists, visit "
-                    "https://turtlecoin.lol/#contact for support.";
+                    "https://discord.gg/smaGAbP for support.";
                 std::cout << WarningMsg(warning) << std::endl;
             }
             else if (stuckCounter > 19)
@@ -1219,6 +1298,8 @@ void findNewTransactions(CryptoNote::INode &node,
                 transactionCount = tmpTransactionCount;
             }
         }
+        counter++;
+
         std::this_thread::sleep_for(std::chrono::seconds(waitSeconds));
     }
 

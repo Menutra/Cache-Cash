@@ -35,7 +35,10 @@
 #endif
 
 /* zedwallet port as of:
-   https://github.com/turtlecoin/turtlecoin/commit/20787d3feea16aa4b6826cb60c2187183fa2991a#diff-6e5436fb331ce8dd228a49f65e49cdaf2520f0649b5b6301ab94babbe9cc56ef */
+   https://github.com/turtlecoin/turtlecoin/commit/1c00362de4fc6cf5a0c3ab3804f1671576b3d1fa#
+   
+   Currently lacks support for view wallets and seed support.
+*/
 
 enum Action {Open, Generate, Import, SeedImport};
 
@@ -96,8 +99,8 @@ std::shared_ptr<WalletInfo> importFromKeys(CryptoNote::WalletGreen &wallet,
                                            Crypto::SecretKey privateSpendKey,
                                            Crypto::SecretKey privateViewKey);
 
-std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
-                                       Config &config);
+Maybe<std::shared_ptr<WalletInfo>> openWallet(CryptoNote::WalletGreen &wallet,
+                                              Config &config);
 
 std::shared_ptr<WalletInfo> importWallet(CryptoNote::WalletGreen &wallet);
 
@@ -105,8 +108,8 @@ std::shared_ptr<WalletInfo> mnemonicImportWallet(CryptoNote::WalletGreen &wallet
 
 std::shared_ptr<WalletInfo> generateWallet(CryptoNote::WalletGreen &wallet);
 
-std::shared_ptr<WalletInfo> handleAction(CryptoNote::WalletGreen &wallet,
-                                         Action action, Config &config);
+Maybe<std::shared_ptr<WalletInfo>> handleAction(CryptoNote::WalletGreen &wallet,
+                                                Action action, Config &config);
 
 Crypto::SecretKey getPrivateKey(std::string outputMsg);
 
