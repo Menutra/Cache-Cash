@@ -208,9 +208,9 @@ void splitTx(CryptoNote::WalletGreen &wallet,
             = int(numTxMultiplier * 
                  (std::ceil(double(txSize) / double(maxSize))));
 
-        /* Split the requested fee over each transaction, i.e. if a fee of 200
+        /* Split the requested fee over each transaction, i.e. if a fee of 1
            $CXCHE was requested and we split it into 4 transactions each one will
-           have a fee of 5$CXCHE. If the fee per transaction is less than the min
+           have a fee of 0.25 $CXCHE. If the fee per transaction is less than the min
            fee, use the min fee. */
         uint64_t feePerTx = std::max (p.fee / numTransactions, minFee);
 

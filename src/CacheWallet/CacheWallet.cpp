@@ -1020,7 +1020,7 @@ bool shutdown(CryptoNote::WalletGreen &wallet, CryptoNote::INode &node, bool &al
 {
     if (alreadyShuttingDown)
     {
-        std::cout << "Patience little turtle, we're already shutting down!" 
+        std::cout << "Patience, we're already shutting down!" 
                   << std::endl;
         return false;
     }
