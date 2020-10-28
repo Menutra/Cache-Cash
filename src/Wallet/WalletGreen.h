@@ -114,6 +114,11 @@ public:
   DepositId insertNewDeposit(const TransactionOutputInformation &depositOutput,
                              TransactionId creatingTransactionId,
                              const Currency &currency, uint32_t height);
+  void clearCaches(bool clearTransactions, bool clearCachedData);
+  void clearCacheAndShutdown();
+  void updateInternalCache();
+  size_t getTxSize(const TransactionParameters &sendingTransaction);
+  bool txIsTooLarge(const TransactionParameters& sendingTransaction);
 
 protected:
   struct NewAddressData
@@ -127,10 +132,7 @@ protected:
   void throwIfStopped() const;
   void throwIfTrackingMode() const;
   void doShutdown();
-  void clearCaches(bool clearTransactions, bool clearCachedData);
-  void clearCacheAndShutdown();
   void convertAndLoadWalletFile(const std::string &path, std::ifstream &&walletFileStream);
-  size_t getTxSize(const TransactionParameters &sendingTransaction);
 
   static void decryptKeyPair(const EncryptedWalletRecord& cipher, Crypto::PublicKey& publicKey, Crypto::SecretKey& secretKey, uint64_t& creationTimestamp, const Crypto::chacha8_key& key);
     Crypto::chacha8_iv getNextIv() const;

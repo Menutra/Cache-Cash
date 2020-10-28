@@ -287,7 +287,7 @@ namespace CryptoNote
                                                                                                                                                                 m_unlockedDepositBalance(0),
                                                                                                                                                                 m_transactionSoftLockTime(transactionSoftLockTime)
   {
-    m_upperTransactionSizeLimit = m_currency.transactionMaxSize();
+    m_upperTransactionSizeLimit = parameters::MAX_SAFE_TX_SIZE;
     m_readyEvent.set();
   }
 
@@ -4494,6 +4494,10 @@ namespace CryptoNote
     return transactionData.size();
   }
 
+  bool WalletGreen::txIsTooLarge(const TransactionParameters& sendingTransaction) {
+    return getTxSize(sendingTransaction) > m_upperTransactionSizeLimit;
+  }
+
   void WalletGreen::deleteFromUncommitedTransactions(const std::vector<size_t> &deletedTransactions)
   {
     for (auto transactionId : deletedTransactions)
@@ -4519,4 +4523,12 @@ namespace CryptoNote
     shutdown();
   }
 
+  /* The blockchain events are sent to us from the blockchain synchronizer,
+     but they appear to not get executed on the dispatcher until the synchronizer
+     stops. After some investigation, it appears that we need to run this
+     archaic line of code to run other code on the dispatcher? */
+  void WalletGreen::updateInternalCache() {
+    System::RemoteContext<void> updateInternalBC(m_dispatcher, [this] () {});
+    updateInternalBC.get();
+  }
 } //namespace CryptoNote
