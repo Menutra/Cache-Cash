@@ -93,7 +93,7 @@ std::unordered_map<std::string, RpcServer::RpcHandler<RpcServer::HandlerFunction
   { "/getheight", { jsonMethod<COMMAND_RPC_GET_HEIGHT>(&RpcServer::on_get_height), true } },
   { "/gettransactions", { jsonMethod<COMMAND_RPC_GET_TRANSACTIONS>(&RpcServer::on_get_transactions), false } },
   { "/sendrawtransaction", { jsonMethod<COMMAND_RPC_SEND_RAW_TX>(&RpcServer::on_send_raw_tx), false } },
-  { "/feeaddress", { jsonMethod<COMMAND_RPC_GET_FEE_ADDRESS>(&RpcServer::on_get_fee_address), true } },
+  { "/feeinfo", { jsonMethod<COMMAND_RPC_GET_FEE_ADDRESS>(&RpcServer::on_get_fee_info), true } }, 
   { "/peers", { jsonMethod<COMMAND_RPC_GET_PEER_LIST>(&RpcServer::on_get_peer_list), true } },
   { "/getpeers", { jsonMethod<COMMAND_RPC_GET_PEER_LIST>(&RpcServer::on_get_peer_list), true } },
 
@@ -294,9 +294,6 @@ bool RpcServer::k_on_check_tx_proof(const K_COMMAND_RPC_CHECK_TX_PROOF::request&
 			throw JsonRpc::JsonRpcError{ CORE_RPC_ERROR_CODE_INTERNAL_ERROR, "Failed to generate key derivation" };
 		}
 
-		// get tx pub key
-		Crypto::PublicKey txPubKey = getTransactionPublicKeyFromExtra(transaction.extra);
-
 		// look for outputs
 		uint64_t received(0);
 		size_t keyIndex(0);
@@ -488,9 +485,13 @@ bool RpcServer::on_query_blocks_lite(const COMMAND_RPC_QUERY_BLOCKS_LITE::reques
   return true;
 }
 
-bool RpcServer::setFeeAddress(const std::string& fee_address, const AccountPublicAddress& fee_acc) {
+bool RpcServer::setFeeAddress(const std::string fee_address) {
   m_fee_address = fee_address;
-  m_fee_acc = fee_acc;
+  return true;
+}
+
+bool RpcServer::setFeeAmount(const uint32_t fee_amount) {
+  m_fee_amount = fee_amount;
   return true;
 }
 
@@ -505,12 +506,14 @@ bool RpcServer::setViewKey(const std::string& view_key) {
   return true;
 }
 
-bool RpcServer::on_get_fee_address(const COMMAND_RPC_GET_FEE_ADDRESS::request& req, COMMAND_RPC_GET_FEE_ADDRESS::response& res) {
+bool RpcServer::on_get_fee_info(const COMMAND_RPC_GET_FEE_ADDRESS::request & req, COMMAND_RPC_GET_FEE_ADDRESS::response & res) {
   if (m_fee_address.empty()) {
-	  res.status = CORE_RPC_STATUS_OK;
-	  return false; 
+    res.status = "Node's fee address is not set";
+    return false;
   }
-  res.fee_address = m_fee_address;
+
+  res.address = m_fee_address;
+  res.amount = m_fee_amount;
   res.status = CORE_RPC_STATUS_OK;
   return true;
 }
@@ -581,6 +584,11 @@ bool RpcServer::onGetPoolChangesLite(const COMMAND_RPC_GET_POOL_CHANGES_LITE::re
   return true;
 }
 
+bool RpcServer::setNodeInfo(const std::string& nodeInfo) {
+  m_node_info = nodeInfo;
+  return true;
+}
+
 //
 // JSON handlers
 //
@@ -616,6 +624,8 @@ bool RpcServer::on_get_info(const COMMAND_RPC_GET_INFO::request& req, COMMAND_RP
   res.status = CORE_RPC_STATUS_OK;
   Crypto::Hash last_block_hash = m_core.getBlockIdByHeight(m_core.get_current_blockchain_height() - 1);
   res.top_block_hash = Common::podToHex(last_block_hash);
+  res.node_info = m_node_info.empty() ? std::string() : m_node_info;
+  res.start_time = m_core.getStartTime();
   res.version = PROJECT_VERSION;
 
   Block blk;

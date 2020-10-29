@@ -18,6 +18,7 @@
 #include "../Logging/LoggerRef.h"
 #include "../Rpc/CoreRpcServerCommandsDefinitions.h"
 #include "CryptoNoteFormatUtils.h"
+#include "CryptoNoteConfig.h"
 
 #include "CryptoNoteTools.h"
 #include "CryptoNoteStatInfo.h"
@@ -63,11 +64,11 @@ core::core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::
   m_mempool(currency, m_blockchain, m_timeProvider, logger),
   m_blockchain(currency, m_mempool, logger, blockchainIndexesEnabled),
   m_miner(new miner(currency, *this, logger)),
-  m_starter_message_showed(false) {
-
-  set_cryptonote_protocol(pprotocol);
-  m_blockchain.addObserver(this);
-  m_mempool.addObserver(this);
+  m_starter_message_showed(false),
+  m_checkpoints(logger) {
+    set_cryptonote_protocol(pprotocol);
+    m_blockchain.addObserver(this);
+    m_mempool.addObserver(this);
   }
   //-----------------------------------------------------------------------------------------------
   core::~core() {
@@ -84,6 +85,11 @@ void core::set_cryptonote_protocol(i_cryptonote_protocol* pprotocol) {
 //-----------------------------------------------------------------------------------
 void core::set_checkpoints(Checkpoints&& chk_pts) {
   m_blockchain.setCheckpoints(std::move(chk_pts));
+  m_checkpoints = std::move(chk_pts);
+}
+//-----------------------------------------------------------------------------------
+bool core::isInCheckpointZone(uint32_t height) const {
+  return m_checkpoints.is_in_checkpoint_zone(height);
 }
 //-----------------------------------------------------------------------------------
 void core::init_options(boost::program_options::options_description& /*desc*/) {
@@ -126,6 +132,10 @@ bool core::get_alternative_blocks(std::list<Block>& blocks) {
 size_t core::get_alternative_blocks_count() {
   return m_blockchain.getAlternativeBlocksCount();
 }
+
+std::time_t core::getStartTime() const {
+  return start_time;
+}
 //-----------------------------------------------------------------------------------------------
 bool core::init(const CoreConfig& config, const MinerConfig& minerConfig, bool load_existing) {
   m_config_folder = config.configFolder;
@@ -147,6 +157,7 @@ bool core::init(const CoreConfig& config, const MinerConfig& minerConfig, bool l
     logger(ERROR, BRIGHT_RED) << "<< Core.cpp << " << "Failed to initialize blockchain storage";
     return false;
   }
+  start_time = std::time(nullptr);
 
   return load_state_data();
 }
@@ -348,19 +359,19 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     b = boost::value_initialized<Block>();
     b.majorVersion = m_blockchain.get_block_major_version_for_height(height);
 
-	if (b.majorVersion < BLOCK_MAJOR_VERSION_2) {
+  	if (b.majorVersion < BLOCK_MAJOR_VERSION_2) {
       if (b.majorVersion == BLOCK_MAJOR_VERSION_1) {
         b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_2) == UpgradeDetectorBase::UNDEF_HEIGHT ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
       }
     } else {
-		b.minorVersion = BLOCK_MINOR_VERSION_0;
-	}
+		  b.minorVersion = BLOCK_MINOR_VERSION_0;
+	  }
 
     b.previousBlockHash = get_tail_id();
     b.timestamp = time(NULL);
-// k0x001
-// Don't generate a block template with invalid timestamp
-// Fix by Jagerman
+
+    // Don't generate a block template with invalid timestamp
+    // Fix by Jagerman
     if(height >= m_currency.timestampCheckWindow()) {
       std::vector<uint64_t> timestamps;
       for(uint32_t offset = height - static_cast<uint32_t>(m_currency.timestampCheckWindow()); offset < height; ++offset) {
@@ -368,10 +379,10 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
       }
       uint64_t median_ts = Common::medianValue(timestamps);
       if (b.timestamp < median_ts) {
-          b.timestamp = median_ts;
+        b.timestamp = median_ts;
       }
-    }
-//	
+    }	
+
     median_size = m_blockchain.getCurrentCumulativeBlocksizeLimit() / 2;
     already_generated_coins = m_blockchain.getCoinsInCirculation();
   }
@@ -411,13 +422,13 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
       if (cumulative_size != txs_size + getObjectBinarySize(b.baseTransaction)) {
         if (!(cumulative_size + 1 == txs_size + getObjectBinarySize(b.baseTransaction))) { logger(ERROR, BRIGHT_RED) << "<< Core.cpp << " << "unexpected case: cumulative_size=" << cumulative_size << " + 1 is not equal txs_cumulative_size=" << txs_size << " + get_object_blobsize(b.baseTransaction)=" << getObjectBinarySize(b.baseTransaction); return false; }
           b.baseTransaction.extra.resize(b.baseTransaction.extra.size() - 1);
-          if (cumulative_size != txs_size + getObjectBinarySize(b.baseTransaction)) {
-            //fuck, not lucky, -1 makes varint-counter size smaller, in that case we continue to grow with cumulative_size
-            logger(TRACE, BRIGHT_RED) <<
-              "Miner tx creation have no luck with delta_extra size = " << delta << " and " << delta - 1;
+        if (cumulative_size != txs_size + getObjectBinarySize(b.baseTransaction)) {
+          //fuck, not lucky, -1 makes varint-counter size smaller, in that case we continue to grow with cumulative_size
+          logger(TRACE, BRIGHT_RED) <<
+            "Miner tx creation have no luck with delta_extra size = " << delta << " and " << delta - 1;
 
-            cumulative_size += delta - 1;
-            continue;
+          cumulative_size += delta - 1;
+          continue;
         }
         logger(DEBUGGING, BRIGHT_GREEN) <<
           "Setting extra for block: " << b.baseTransaction.extra.size() << "<< Core.cpp << " << ", try_count=" << try_count;
@@ -1009,9 +1020,49 @@ uint64_t core::depositInterestAtHeight(size_t height) const {
   return m_blockchain.depositInterestAtHeight(height);
 }
 
+bool core::check_tx_fee(const Transaction& tx, size_t blobSize, tx_verification_context& tvc) {
+  uint64_t inputs_amount = 0;
+  if (!get_inputs_money_amount(tx, inputs_amount)) {
+    tvc.m_verification_failed = true;
+    return false;
+  }
+
+  uint64_t outputs_amount = get_outs_money_amount(tx);
+
+  if (outputs_amount > inputs_amount) {
+    logger(DEBUGGING) << "transaction use more money then it has: use " << m_currency.formatAmount(outputs_amount) <<
+      ", have " << m_currency.formatAmount(inputs_amount);
+    tvc.m_verification_failed = true;
+    return false;
+  }
+
+  Crypto::Hash h = NULL_HASH;
+  getObjectHash(tx, h, blobSize);
+  const uint64_t fee = inputs_amount - outputs_amount;
+  bool enough = true;
+  uint64_t min = CryptoNote::parameters::MINIMUM_FEE;
+  if (fee < (min - min * 20 / 100)) {
+    logger(INFO) << "[Core] Transaction fee is not enough: " << m_currency.formatAmount(fee) << ", minimum fee: " << m_currency.formatAmount(min);
+    enough = false;
+  }
+
+  if (!enough) {
+    tvc.m_verification_failed = true;
+    tvc.m_tx_fee_too_small = true;
+    return false;
+  }
+
+  return true;
+}
+
 bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& txHash, size_t blobSize, tx_verification_context& tvc, bool keptByBlock, uint32_t height) {
   if (!check_tx_syntax(tx)) {
     logger(INFO) << "<< Core.cpp << " << "WRONG TRANSACTION BLOB, Failed to check tx " << txHash << " syntax, rejected";
+    tvc.m_verification_failed = true;
+    return false;
+  }
+
+  if (!check_tx_fee(tx, blobSize, tvc)) {
     tvc.m_verification_failed = true;
     return false;
   }

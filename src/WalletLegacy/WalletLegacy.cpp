@@ -722,7 +722,7 @@ TransactionId WalletLegacy::sendFusionTransaction(const std::list<TransactionOut
   return txId;
 }
 
-TransactionId WalletLegacy::deposit(uint32_t term, uint64_t amount, uint64_t fee, uint64_t mixIn) {
+TransactionId WalletLegacy::deposit(uint64_t term, uint64_t amount, uint64_t fee, uint64_t mixIn) {
   throwIfNotInitialised();
 
   TransactionId txId = 0;

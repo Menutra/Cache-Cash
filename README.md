@@ -1,8 +1,8 @@
-## Cache
+## Cache (Testnet Repository)
 > A private cryptographic currency with decentralised finance features.
 
-![status](https://img.shields.io/badge/Status-Nearly%20Ready-orange)
-![version](https://img.shields.io/badge/Version-0.0.2-blue)
+![status](https://img.shields.io/badge/Status-Testnet-orange)
+![version](https://img.shields.io/badge/Version-0.0.5-blue)
 
 ***
 
@@ -17,7 +17,7 @@
 
 | Build | Status | Download |
 |-------|--------|----------|
-| `master` | [![Build status](https://ci.appveyor.com/api/projects/status/bfr8v9sxt6qrctvv/branch/master?svg=true)](https://ci.appveyor.com/project/En4orcer/cache/branch/master) | [![Win x64](https://img.shields.io/badge/Win%20x64-Download-blue)](https://ci.appveyor.com/project/En4orcer/project/build/artifacts) |
+| `master` | [![Build status](https://ci.appveyor.com/api/projects/status/6usy0rs43l938415/branch/master?svg=true)](https://ci.appveyor.com/project/En4orcer/testnet/branch/master) | [![Win x64](https://img.shields.io/badge/Win%20x64-Download-blue)](https://ci.appveyor.com/project/En4orcer/testnet/build/artifacts) |
 
 ***
 

@@ -264,7 +264,7 @@ void printListTransfersItem(LoggerRef& logger, const WalletLegacyTransaction& tx
 
   char timeString[TIMESTAMP_MAX_WIDTH + 1];
   time_t timestamp = static_cast<time_t>(txInfo.timestamp);
-  if (std::strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", std::gmtime(&timestamp)) == 0) {
+  if (std::strftime(timeString, sizeof(timeString), "%d-%m-%Y %S:%M:%H", std::gmtime(&timestamp)) == 0) {
     throw std::runtime_error("time buffer is too small");
   }
 
@@ -312,10 +312,9 @@ bool writeAddressFile(const std::string& addressFilename, const std::string& add
 
 bool processServerAliasResponse(const std::string& s, std::string& address) {
   try {
-  //   
-  // Courtesy of Monero Project
-		// make sure the txt record has "oa1:ccx" and find it
-		auto pos = s.find("oa1:ccx");
+    // https://openalias.org/
+		// make sure the txt record has "oa1:cxche" and find it
+		auto pos = s.find("oa1:cxche");
 		if (pos == std::string::npos)
 			return false;
 		// search from there to find "recipient_address="
@@ -325,44 +324,19 @@ bool processServerAliasResponse(const std::string& s, std::string& address) {
 		pos += 18; // move past "recipient_address="
 		// find the next semicolon
 		auto pos2 = s.find(";", pos);
-		if (pos2 != std::string::npos)
-		{
-			// length of address == 95, we can at least validate that much here
-			if (pos2 - pos == 98)
-			{
-				address = s.substr(pos, 98);
+		if (pos2 != std::string::npos) {
+			// length of address == 99, we can at least validate that much here
+			if (pos2 - pos == 99) {
+				address = s.substr(pos, 99);
 			} else {
 				return false;
 			}
 		}
-    }
-	catch (std::exception&) {
+  } catch (std::exception&) {
 		return false;
 	}
 
 	return true;
-}
-
-
-
-bool splitUrlToHostAndUri(const std::string& aliasUrl, std::string& host, std::string& uri) {
-  size_t protoBegin = aliasUrl.find("http://");
-  if (protoBegin != 0 && protoBegin != std::string::npos) {
-    return false;
-  }
-
-  size_t hostBegin = protoBegin == std::string::npos ? 0 : 7; //strlen("http://")
-  size_t hostEnd = aliasUrl.find('/', hostBegin);
-
-  if (hostEnd == std::string::npos) {
-    uri = "/";
-    host = aliasUrl.substr(hostBegin);
-  } else {
-    uri = aliasUrl.substr(hostEnd);
-    host = aliasUrl.substr(hostBegin, hostEnd - hostBegin);
-  }
-
-  return true;
 }
 
 bool askAliasesTransfersConfirmation(const std::map<std::string, std::vector<WalletLegacyTransfer>>& aliases, const Currency& currency) {
@@ -374,35 +348,36 @@ bool askAliasesTransfersConfirmation(const std::map<std::string, std::vector<Wal
     }
   }
 
-  std::string answer;
+  char c;
   do {
-    std::cout << "y/n: ";
+    std::cout << "(Y/N): ";
+    std::string answer;
     std::getline(std::cin, answer);
-  } while (answer != "y" && answer != "Y" && answer != "n" && answer != "N");
+    c = answer[0];
+    std::tolower(c);
+  } while (c != 'y' && c != 'n');
 
-  return answer == "y" || answer == "Y";
-}
-
+  return c == 'y';
 }
 
 bool processServerFeeAddressResponse(const std::string& response, std::string& fee_address) {
-    try {
-        std::stringstream stream(response);
-        JsonValue json;
-        stream >> json;
+  try {
+    std::stringstream stream(response);
+    JsonValue json;
+    stream >> json;
 
-        auto rootIt = json.getObject().find("fee_address");
-        if (rootIt == json.getObject().end()) {
-            return false;
-        }
+    auto rootIt = json.getObject().find("fee_address");
+    if (rootIt == json.getObject().end())
+      return false;
 
-        fee_address = rootIt->second.getString();
-    }
-    catch (std::exception&) {
-        return false;
-    }
+    fee_address = rootIt->second.getString();
+  } catch (std::exception&) {
+    return false;
+  }
 
-    return true;
+  return true;
+}
+
 }
 
 std::string simple_wallet::get_commands_str() {
@@ -456,8 +431,8 @@ simple_wallet::simple_wallet(System::Dispatcher& dispatcher, const CryptoNote::C
   m_consoleHandler.setHandler("save", boost::bind(&simple_wallet::save, this, _1), "Save wallet synchronized data");
   m_consoleHandler.setHandler("reset", boost::bind(&simple_wallet::reset, this, _1), "Discard cache data and start synchronizing from the start");
   m_consoleHandler.setHandler("help", boost::bind(&simple_wallet::help, this, _1), "Show this help");
-  m_consoleHandler.setHandler("exit", boost::bind(&simple_wallet::exit, this, _1), "Close wallet");  
   m_consoleHandler.setHandler("get_reserve_proof", boost::bind(&simple_wallet::get_reserve_proof, this, _1), "all|<amount> [<message>] - Generate a signature proving that you own at least <amount>, optionally with a challenge string <message>. ");
+  m_consoleHandler.setHandler("exit", boost::bind(&simple_wallet::exit, this, _1), "Close wallet");
 }
 
 /* This function shows the number of outputs in the wallet
@@ -857,48 +832,47 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::new_wallet(Crypto::SecretKey &secret_key, Crypto::SecretKey &view_key, const std::string &wallet_file, const std::string& password) {
-                m_wallet_file = wallet_file;
+  m_wallet_file = wallet_file;
 
-                m_wallet.reset(new WalletLegacy(m_currency, *m_node.get(), logManager));
-                m_node->addObserver(static_cast<INodeObserver*>(this));
-                m_wallet->addObserver(this);
-                try {
-                  m_initResultPromise.reset(new std::promise<std::error_code>());
-                  std::future<std::error_code> f_initError = m_initResultPromise->get_future();
+  m_wallet.reset(new WalletLegacy(m_currency, *m_node.get(), logManager));
+  m_node->addObserver(static_cast<INodeObserver*>(this));
+  m_wallet->addObserver(this);
+  try {
+    m_initResultPromise.reset(new std::promise<std::error_code>());
+    std::future<std::error_code> f_initError = m_initResultPromise->get_future();
 
-                  AccountKeys wallet_keys;
-                  wallet_keys.spendSecretKey = secret_key;
-                  wallet_keys.viewSecretKey = view_key;
-                  Crypto::secret_key_to_public_key(wallet_keys.spendSecretKey, wallet_keys.address.spendPublicKey);
-                  Crypto::secret_key_to_public_key(wallet_keys.viewSecretKey, wallet_keys.address.viewPublicKey);
+    AccountKeys wallet_keys;
+    wallet_keys.spendSecretKey = secret_key;
+    wallet_keys.viewSecretKey = view_key;
+    Crypto::secret_key_to_public_key(wallet_keys.spendSecretKey, wallet_keys.address.spendPublicKey);
+    Crypto::secret_key_to_public_key(wallet_keys.viewSecretKey, wallet_keys.address.viewPublicKey);
 
-                  m_wallet->initWithKeys(wallet_keys, password);
-                  auto initError = f_initError.get();
-                  m_initResultPromise.reset(nullptr);
-                  if (initError) {
-                    fail_msg_writer() << "failed to generate new wallet: " << initError.message();
-                    return false;
-                  }
+    m_wallet->initWithKeys(wallet_keys, password);
+    auto initError = f_initError.get();
+    m_initResultPromise.reset(nullptr);
+    if (initError) {
+      fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+      return false;
+    }
 
-                  try {
-                    CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
-                  } catch (std::exception& e) {
-                    fail_msg_writer() << "failed to save new wallet: " << e.what();
-                    throw;
-                  }
+    try {
+      CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
+    } catch (std::exception& e) {
+      fail_msg_writer() << "failed to save new wallet: " << e.what();
+      throw;
+    }
 
-                  AccountKeys keys;
-                  m_wallet->getAccountKeys(keys);
+    AccountKeys keys;
+    m_wallet->getAccountKeys(keys);
 
-                  logger(INFO, BRIGHT_WHITE) <<
-                    "Imported wallet: " << m_wallet->getAddress() << std::endl;
-                }
-                catch (const std::exception& e) {
-                  fail_msg_writer() << "failed to import wallet: " << e.what();
-                  return false;
-                }
+    logger(INFO, BRIGHT_WHITE) <<
+    "Imported wallet: " << m_wallet->getAddress() << std::endl;
+  } catch (const std::exception& e) {
+    fail_msg_writer() << "failed to import wallet: " << e.what();
+    return false;
+  }
 
-                success_msg_writer() <<
+  success_msg_writer() <<
                   "**********************************************************************\n" <<
                   "Your wallet has been imported.\n" <<
                   "Use \"help\" command to see the list of available commands.\n" <<
@@ -906,8 +880,8 @@ bool simple_wallet::new_wallet(Crypto::SecretKey &secret_key, Crypto::SecretKey 
                   "current session's state. Otherwise, you will possibly need to synchronize \n" <<
                   "your wallet again. Your wallet key is NOT under risk anyway.\n" <<
                   "**********************************************************************";
-                return true;
-                }
+  return true;
+}
 
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::close_wallet()
@@ -953,75 +927,6 @@ bool simple_wallet::reset(const std::vector<std::string> &args) {
   }
 
   std::cout << std::endl;
-
-  return true;
-}
-
-bool simple_wallet::start_mining(const std::vector<std::string>& args) {
-  COMMAND_RPC_START_MINING::request req;
-  req.miner_address = m_wallet->getAddress();
-
-  bool ok = true;
-  size_t max_mining_threads_count = (std::max)(std::thread::hardware_concurrency(), static_cast<unsigned>(2));
-  if (0 == args.size()) {
-    req.threads_count = 1;
-  } else if (1 == args.size()) {
-    uint16_t num = 1;
-    ok = Common::fromString(args[0], num);
-    ok = ok && (1 <= num && num <= max_mining_threads_count);
-    req.threads_count = num;
-  } else {
-    ok = false;
-  }
-
-  if (!ok) {
-    fail_msg_writer() << "invalid arguments. Please use start_mining [<number_of_threads>], " <<
-      "<number_of_threads> should be from 1 to " << max_mining_threads_count;
-    return true;
-  }
-
-
-  COMMAND_RPC_START_MINING::response res;
-
-  try {
-    HttpClient httpClient(m_dispatcher, m_daemon_host, m_daemon_port);
-
-    invokeJsonCommand(httpClient, "/start_mining", req, res);
-
-    std::string err = interpret_rpc_response(true, res.status);
-    if (err.empty())
-      success_msg_writer() << "Mining started in daemon";
-    else
-      fail_msg_writer() << "mining has NOT been started: " << err;
-
-  } catch (const ConnectException&) {
-    printConnectionError();
-  } catch (const std::exception& e) {
-    fail_msg_writer() << "Failed to invoke rpc method: " << e.what();
-  }
-
-  return true;
-}
-//----------------------------------------------------------------------------------------------------
-bool simple_wallet::stop_mining(const std::vector<std::string>& args)
-{
-  COMMAND_RPC_STOP_MINING::request req;
-  COMMAND_RPC_STOP_MINING::response res;
-
-  try {
-    HttpClient httpClient(m_dispatcher, m_daemon_host, m_daemon_port);
-
-    invokeJsonCommand(httpClient, "/stop_mining", req, res);
-    std::string err = interpret_rpc_response(true, res.status);
-    if (err.empty())
-      success_msg_writer() << "Mining stopped in daemon";
-    else
-      fail_msg_writer() << "mining has NOT been stopped: " << err;
-  } catch (const ConnectException&) {
-    printConnectionError();
-  } catch (const std::exception& e) {
-    fail_msg_writer() << "Failed to invoke rpc method: " << e.what();
-  }
 
   return true;
 }
@@ -1753,7 +1658,7 @@ bool simple_wallet::transfer(const std::vector<std::string> &args) {
       return true;
     }
 
-    /* set static mixin of 4*/
+    /* set static mixin of 4 */
     cmd.fake_outs_count = CryptoNote::parameters::MINIMUM_MIXIN;
 
     /* force minimum fee */

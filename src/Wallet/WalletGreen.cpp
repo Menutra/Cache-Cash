@@ -287,7 +287,7 @@ namespace CryptoNote
                                                                                                                                                                 m_unlockedDepositBalance(0),
                                                                                                                                                                 m_transactionSoftLockTime(transactionSoftLockTime)
   {
-    m_upperTransactionSizeLimit = m_currency.transactionMaxSize();
+    m_upperTransactionSizeLimit = parameters::MAX_SAFE_TX_SIZE;
     m_readyEvent.set();
   }
 
@@ -409,7 +409,7 @@ namespace CryptoNote
     }
 
     transactionHash = Common::podToHex(transaction->getTransactionHash());
-    size_t id = validateSaveAndSendTransaction(*transaction, {}, false, true);
+    validateSaveAndSendTransaction(*transaction, {}, false, true);
   }
 
   std::vector<MultisignatureInput> WalletGreen::prepareMultisignatureInputs(const std::vector<TransactionOutputInformation> &selectedTransfers)
@@ -492,11 +492,11 @@ namespace CryptoNote
      which includes the term, and then after that the change outputs */
 
     /* Add the deposit outputs to the transaction */
-    auto depositIndex = transaction->addOutput(
-        neededMoney - fee,
-        {destAddr},
-        1,
-        term);
+    transaction->addOutput(
+      neededMoney - fee,
+      {destAddr},
+      1,
+      term);
 
     /* Let's add the change outputs to the transaction */
 
@@ -588,7 +588,7 @@ namespace CryptoNote
 
     /* Return the transaction hash */
     transactionHash = Common::podToHex(transaction->getTransactionHash());
-    size_t id = validateSaveAndSendTransaction(*transaction, {}, false, true);
+    validateSaveAndSendTransaction(*transaction, {}, false, true);
   }
 
   void WalletGreen::validateOrders(const std::vector<WalletOrder> &orders) const
@@ -913,8 +913,6 @@ namespace CryptoNote
       dst.setAutoFlush(true);
       dst.flush();
     });
-
-    size_t counter = 0;
 
     for (auto &encryptedSpendKeys : src)
     {
@@ -1991,7 +1989,7 @@ namespace CryptoNote
 
       if (id != WALLET_INVALID_TRANSACTION_ID)
       {
-        auto &tx = m_transactions[id];
+        m_transactions[id];
       }
     });
 
@@ -2170,6 +2168,9 @@ namespace CryptoNote
     });
 
     assert(r);
+    if (!r) {
+      std::cout << "Unable to update wallet deposit information." << std::endl;
+    }
 
     return updated;
   }
@@ -2234,6 +2235,9 @@ namespace CryptoNote
     });
 
     assert(r);
+    if (!r) {
+      std::cout << "Unable to update wallet transaction information." << std::endl;
+    }
 
     return updated;
   }
@@ -3704,6 +3708,9 @@ namespace CryptoNote
       TransactionInformation info;
       bool ok = container->getTransactionInformation(hash, info, NULL, NULL);
       assert(ok);
+      if (!ok) {
+        std::cout << "Unable to get transaction information" << std::endl;
+      }
       heights.push_back(info.blockHeight);
     }
     uint64_t unlocked = calculateDepositsAmount(transfers, m_currency, heights);
@@ -3832,7 +3839,7 @@ namespace CryptoNote
 
       if (id != WALLET_INVALID_TRANSACTION_ID)
       {
-        auto &tx = m_transactions[id];
+        m_transactions[id];
       }
     });
 
@@ -4487,6 +4494,10 @@ namespace CryptoNote
     return transactionData.size();
   }
 
+  bool WalletGreen::txIsTooLarge(const TransactionParameters& sendingTransaction) {
+    return getTxSize(sendingTransaction) > m_upperTransactionSizeLimit;
+  }
+
   void WalletGreen::deleteFromUncommitedTransactions(const std::vector<size_t> &deletedTransactions)
   {
     for (auto transactionId : deletedTransactions)
@@ -4512,4 +4523,12 @@ namespace CryptoNote
     shutdown();
   }
 
+  /* The blockchain events are sent to us from the blockchain synchronizer,
+     but they appear to not get executed on the dispatcher until the synchronizer
+     stops. After some investigation, it appears that we need to run this
+     archaic line of code to run other code on the dispatcher? */
+  void WalletGreen::updateInternalCache() {
+    System::RemoteContext<void> updateInternalBC(m_dispatcher, [this] () {});
+    updateInternalBC.get();
+  }
 } //namespace CryptoNote

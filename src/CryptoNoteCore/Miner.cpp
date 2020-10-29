@@ -248,7 +248,10 @@ namespace CryptoNote
     }
 
     m_threads.clear();
-    logger(INFO) << "Mining has been stopped, " << m_threads.size() << " finished" ;
+    if (m_threads.size() >= 1) {
+      logger(INFO) << "Mining has been stopped, " << m_threads.size() << " finished" ;
+    }
+
     return true;
   }
   //-----------------------------------------------------------------------------------------------------
