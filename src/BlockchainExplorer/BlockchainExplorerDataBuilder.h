@@ -32,7 +32,7 @@ public:
   static bool getPaymentId(const Transaction& transaction, Crypto::Hash& paymentId);
 
 private:
-  bool getMixin(const Transaction& transaction, uint64_t& mixin);
+  bool getMixin(const Transaction& transaction, uint16_t& mixin);
   bool fillTxExtra(const std::vector<uint8_t>& rawExtra, TransactionExtraDetails& extraDetails);
   size_t median(std::vector<size_t>& v);
 
