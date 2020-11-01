@@ -22,7 +22,7 @@ namespace CryptoNote {
     /* cxche address prefix */
     const uint64_t PUBLIC_ADDRESS_BASE58_PREFIX = 0x29c7dd6;
     /* 20 minutes */
-    const size_t   MINED_COINS_UNLOCK_WINDOW = 10;
+    const uint32_t MINED_COINS_UNLOCK_WINDOW = 10;
     const uint64_t DEFAULT_TX_SPENDABLE_AGE = 10;
 
     const uint64_t MONEY_SUPPLY = UINT64_C(50000000000000);
