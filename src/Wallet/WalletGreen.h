@@ -105,7 +105,7 @@ public:
   virtual void stop() override;
   virtual WalletEvent getEvent() override;
 
-  virtual size_t createFusionTransaction(uint64_t threshold, uint64_t mixin,
+  virtual size_t createFusionTransaction(uint64_t threshold, uint16_t mixin,
                                          const std::vector<std::string> &sourceAddresses = {}, const std::string &destinationAddress = "") override;
   virtual bool isFusionTransaction(size_t transactionId) const override;
   virtual IFusionManager::EstimateResult estimate(uint64_t threshold, const std::vector<std::string> &sourceAddresses = {}) const override;
@@ -256,7 +256,7 @@ protected:
                           const std::vector<WalletOrder> &orders,
                           const std::vector<WalletMessage> &messages,
                           uint64_t fee,
-                          uint64_t mixIn,
+                          uint16_t mixIn,
                           const std::string &extra,
                           uint64_t unlockTimestamp,
                           const DonationSettings &donation,
@@ -272,12 +272,12 @@ protected:
   size_t doTransfer(const TransactionParameters &transactionParameters, Crypto::SecretKey &transactionSK);
 
   void requestMixinOuts(const std::vector<OutputToTransfer> &selectedTransfers,
-                        uint64_t mixIn,
+                        uint16_t mixIn,
                         std::vector<CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &mixinResult);
 
   void prepareInputs(const std::vector<OutputToTransfer> &selectedTransfers,
                      std::vector<CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &mixinResult,
-                     uint64_t mixIn,
+                     uint16_t mixIn,
                      std::vector<InputInfo> &keysInfo);
 
   uint64_t selectTransfers(uint64_t needeMoney,

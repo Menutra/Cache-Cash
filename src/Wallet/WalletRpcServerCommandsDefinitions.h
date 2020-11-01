@@ -70,7 +70,7 @@ using CryptoNote::ISerializer;
     {
       std::list<transfer_destination> destinations;
       uint64_t fee;
-      uint64_t mixin;
+      uint16_t mixin;
       uint64_t unlock_time = 0;
       std::string payment_id;
       std::list<TransferMessage> messages;
@@ -365,7 +365,7 @@ using CryptoNote::ISerializer;
   {
     struct request
     {
-      uint64_t mixin = 0;
+      uint16_t mixin = 0;
       uint64_t threshold;
       uint64_t unlock_time = 0;
 
