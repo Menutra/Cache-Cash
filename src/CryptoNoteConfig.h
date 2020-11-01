@@ -33,14 +33,9 @@ namespace CryptoNote {
     const uint64_t MINIMUM_FEE = UINT64_C(100);
     const uint64_t MINIMUM_FEE_BANKING = UINT64_C(100);
     const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(10);
-	    
-	           /* Fee adjustment V1 */
-    const uint64_t MINIMUM_FEE_V1                                = UINT64_C(10);
-
-    const uint64_t MINIMUM_FEE_V1_HEIGHT                         = 9338;
 
     /* during mainnet, we'll change min_mix to 0 and default to 5 */
-    const size_t   MINIMUM_MIXIN = 4;
+    const uint16_t MINIMUM_MIXIN = 4;
     const uint16_t DEFAULT_MIXIN = MINIMUM_MIXIN;
 
     const uint64_t MULTIPLIER_FACTOR = 100;
@@ -130,7 +125,7 @@ namespace CryptoNote {
 	const size_t   BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 128;
 	const size_t   COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT = 1000;
 
-	const char     P2P_STAT_TRUSTED_PUB_KEY[] = "4C94BE30F93984817ACAF0EB21E0AA81DDAEE504DAFA0A0C344BF3E6E6A2BC9F";
+	const char     P2P_STAT_TRUSTED_PUB_KEY[] = "5a1795d5c9c1c9d3fe1aa2cda90484787a10296e49cad387e9a9208ae78216ae";
 	const size_t   P2P_LOCAL_WHITE_PEERLIST_LIMIT = 1000;
 	const size_t   P2P_LOCAL_GRAY_PEERLIST_LIMIT = 5000;
 	const size_t   P2P_CONNECTION_MAX_WRITE_BUFFER_SIZE = 64 * 1024 * 1024;
