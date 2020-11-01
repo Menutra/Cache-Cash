@@ -543,7 +543,7 @@ TransactionId WalletLegacy::sendTransaction(Crypto::SecretKey& transactionSK,
                                             const WalletLegacyTransfer& transfer,
                                             uint64_t fee,
                                             const std::string& extra,
-                                            uint64_t mixIn,
+                                            uint16_t mixIn,
                                             uint64_t unlockTimestamp,
                                             const std::vector<TransactionMessage>& messages,
                                             uint64_t ttl) {
@@ -558,7 +558,7 @@ TransactionId WalletLegacy::sendTransaction(Crypto::SecretKey& transactionSK,
                                             std::vector<WalletLegacyTransfer>& transfers,
                                             uint64_t fee,
                                             const std::string& extra,
-                                            uint64_t mixIn,
+                                            uint16_t mixIn,
                                             uint64_t unlockTimestamp,
                                             const std::vector<TransactionMessage>& messages,
                                             uint64_t ttl) 
@@ -689,7 +689,7 @@ std::list<TransactionOutputInformation> WalletLegacy::selectFusionTransfersToSen
   return selectedOutputs;
 }
 
-TransactionId WalletLegacy::sendFusionTransaction(const std::list<TransactionOutputInformation>& fusionInputs, uint64_t fee, const std::string& extra, uint64_t mixIn, uint64_t unlockTimestamp) {
+TransactionId WalletLegacy::sendFusionTransaction(const std::list<TransactionOutputInformation>& fusionInputs, uint64_t fee, const std::string& extra, uint16_t mixIn, uint64_t unlockTimestamp) {
   TransactionId txId = 0;
   std::shared_ptr<WalletRequest> request;
   std::deque<std::unique_ptr<WalletLegacyEvent>> events;
@@ -722,7 +722,7 @@ TransactionId WalletLegacy::sendFusionTransaction(const std::list<TransactionOut
   return txId;
 }
 
-TransactionId WalletLegacy::deposit(uint64_t term, uint64_t amount, uint64_t fee, uint64_t mixIn) {
+TransactionId WalletLegacy::deposit(uint64_t term, uint64_t amount, uint64_t fee, uint16_t mixIn) {
   throwIfNotInitialised();
 
   TransactionId txId = 0;

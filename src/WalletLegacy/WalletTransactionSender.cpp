@@ -207,7 +207,7 @@ namespace CryptoNote
                                                                           std::vector<WalletLegacyTransfer> &transfers,
                                                                           uint64_t fee,
                                                                           const std::string &extra,
-                                                                          uint64_t mixIn,
+                                                                          uint16_t mixIn,
                                                                           uint64_t unlockTimestamp,
                                                                           const std::vector<TransactionMessage> &messages,
                                                                           uint64_t ttl)
@@ -262,7 +262,7 @@ namespace CryptoNote
                                                                              uint64_t term,
                                                                              uint64_t amount,
                                                                              uint64_t fee,
-                                                                             uint64_t mixIn)
+                                                                             uint16_t mixIn)
   {
 
     throwIf(term < m_currency.depositMinTerm(), error::DEPOSIT_TERM_TOO_SMALL);
@@ -313,7 +313,7 @@ namespace CryptoNote
   }
 
   std::shared_ptr<WalletRequest> WalletTransactionSender::makeSendFusionRequest(TransactionId &transactionId, std::deque<std::unique_ptr<WalletLegacyEvent>> &events,
-                                                                                const std::vector<WalletLegacyTransfer> &transfers, const std::list<TransactionOutputInformation> &fusionInputs, uint64_t fee, const std::string &extra, uint64_t mixIn, uint64_t unlockTimestamp)
+                                                                                const std::vector<WalletLegacyTransfer> &transfers, const std::list<TransactionOutputInformation> &fusionInputs, uint64_t fee, const std::string &extra, uint16_t mixIn, uint64_t unlockTimestamp)
   {
 
     using namespace CryptoNote;
@@ -398,7 +398,7 @@ namespace CryptoNote
     }
   }
 
-  bool WalletTransactionSender::checkIfEnoughMixins(const std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &outs, uint64_t mixIn)
+  bool WalletTransactionSender::checkIfEnoughMixins(const std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &outs, uint16_t mixIn)
   {
     auto scanty_it = std::find_if(outs.begin(), outs.end(), [&](const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount &out) {
       return out.outs.size() < mixIn;
@@ -679,7 +679,7 @@ namespace CryptoNote
   void WalletTransactionSender::prepareKeyInputs(
       const std::vector<TransactionOutputInformation> &selectedTransfers,
       std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &outs,
-      std::vector<TransactionSourceEntry> &sources, uint64_t mixIn)
+      std::vector<TransactionSourceEntry> &sources, uint16_t mixIn)
   {
 
     size_t i = 0;
@@ -729,7 +729,7 @@ namespace CryptoNote
 
   std::vector<TransactionTypes::InputKeyInfo> WalletTransactionSender::prepareKeyInputs(const std::vector<TransactionOutputInformation> &selectedTransfers,
                                                                                         std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &outs,
-                                                                                        uint64_t mixIn)
+                                                                                        uint16_t mixIn)
   {
     std::vector<TransactionSourceEntry> sources;
     prepareKeyInputs(selectedTransfers, outs, sources, mixIn);
