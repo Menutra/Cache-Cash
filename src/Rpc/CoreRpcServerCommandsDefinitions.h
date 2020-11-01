@@ -459,7 +459,7 @@ struct f_transaction_details_response {
   std::string hash;
   size_t size;
   std::string paymentId;
-  uint64_t mixin;
+  uint16_t mixin;
   uint64_t fee;
   uint64_t amount_out;
 
