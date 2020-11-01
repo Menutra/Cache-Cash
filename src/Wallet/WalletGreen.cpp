@@ -119,7 +119,7 @@ namespace
     return neededMoney;
   }
 
-  void checkIfEnoughMixins(std::vector<CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &mixinResult, uint64_t mixIn)
+  void checkIfEnoughMixins(std::vector<CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &mixinResult, uint16_t mixIn)
   {
     auto notEnoughIt = std::find_if(mixinResult.begin(), mixinResult.end(),
                                     [mixIn](const CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount &ofa) { return ofa.outs.size() < mixIn; });
@@ -1882,7 +1882,7 @@ namespace CryptoNote
                                        const std::vector<WalletOrder> &orders,
                                        const std::vector<WalletMessage> &messages,
                                        uint64_t fee,
-                                       uint64_t mixIn,
+                                       uint16_t mixIn,
                                        const std::string &extra,
                                        uint64_t unlockTimestamp,
                                        const DonationSettings &donation,
@@ -2767,7 +2767,7 @@ namespace CryptoNote
 
   void WalletGreen::requestMixinOuts(
       const std::vector<OutputToTransfer> &selectedTransfers,
-      uint64_t mixIn,
+      uint16_t mixIn,
       std::vector<CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &mixinResult)
   {
 
@@ -2948,7 +2948,7 @@ namespace CryptoNote
   void WalletGreen::prepareInputs(
       const std::vector<OutputToTransfer> &selectedTransfers,
       std::vector<CryptoNote::COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount> &mixinResult,
-      uint64_t mixIn,
+      uint16_t mixIn,
       std::vector<InputInfo> &keysInfo)
   {
 
@@ -3828,7 +3828,7 @@ namespace CryptoNote
   }
 
   size_t WalletGreen::createFusionTransaction(
-      uint64_t threshold, uint64_t mixin,
+      uint64_t threshold, uint16_t mixin,
       const std::vector<std::string> &sourceAddresses,
       const std::string &destinationAddress)
   {

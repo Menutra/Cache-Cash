@@ -35,7 +35,7 @@ namespace CryptoNote {
     const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(10);
 
     /* during mainnet, we'll change min_mix to 0 and default to 5 */
-    const size_t   MINIMUM_MIXIN = 4;
+    const uint16_t MINIMUM_MIXIN = 4;
     const uint16_t DEFAULT_MIXIN = MINIMUM_MIXIN;
 
     const uint64_t MULTIPLIER_FACTOR = 100;

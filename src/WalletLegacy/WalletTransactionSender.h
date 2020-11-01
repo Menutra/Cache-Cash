@@ -35,7 +35,7 @@ public:
                                                  std::vector<WalletLegacyTransfer>& transfers,
                                                  uint64_t fee,
                                                  const std::string& extra = "",
-                                                 uint64_t mixIn = 0,
+                                                 uint16_t mixIn = 0,
                                                  uint64_t unlockTimestamp = 0,
                                                  const std::vector<TransactionMessage>& messages = std::vector<TransactionMessage>(),
                                                  uint64_t ttl = 0);
@@ -45,7 +45,7 @@ public:
                                                     uint64_t term,
                                                     uint64_t amount,
                                                     uint64_t fee,
-                                                    uint64_t mixIn = 0);
+                                                    uint16_t mixIn = 0);
 
   std::unique_ptr<WalletRequest> makeWithdrawDepositRequest(TransactionId& transactionId,
                                                             std::deque<std::unique_ptr<WalletLegacyEvent>>& events,
@@ -54,7 +54,7 @@ public:
                                                             
 std::shared_ptr<WalletRequest> makeSendFusionRequest(TransactionId& transactionId, std::deque<std::unique_ptr<WalletLegacyEvent>>& events,
                                                      const std::vector<WalletLegacyTransfer>& transfers, const std::list<TransactionOutputInformation>& fusionInputs,
-                                                     uint64_t fee, const std::string& extra = "", uint64_t mixIn = 0, uint64_t unlockTimestamp = 0);
+                                                     uint64_t fee, const std::string& extra = "", uint16_t mixIn = 0, uint64_t unlockTimestamp = 0);
 
 private:
   std::unique_ptr<WalletRequest> makeGetRandomOutsRequest(std::shared_ptr<SendTransactionContext>&& context, bool isMultisigTransaction, Crypto::SecretKey& transactionSK);
@@ -74,16 +74,16 @@ private:
   void prepareKeyInputs(const std::vector<TransactionOutputInformation>& selectedTransfers,
                         std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount>& outs,
                         std::vector<TransactionSourceEntry>& sources,
-                        uint64_t mixIn);
+                        uint16_t mixIn);
   std::vector<TransactionTypes::InputKeyInfo> prepareKeyInputs(const std::vector<TransactionOutputInformation>& selectedTransfers,
                                                                std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount>& outs,
-                                                               uint64_t mixIn);
+                                                               uint16_t mixIn);
   std::vector<MultisignatureInput> prepareMultisignatureInputs(const std::vector<TransactionOutputInformation>& selectedTransfers);
   void splitDestinations(TransferId firstTransferId, size_t transfersCount, const TransactionDestinationEntry& changeDts,
     const TxDustPolicy& dustPolicy, std::vector<TransactionDestinationEntry>& splittedDests);
   void digitSplitStrategy(TransferId firstTransferId, size_t transfersCount, const TransactionDestinationEntry& change_dst, uint64_t dust_threshold,
     std::vector<TransactionDestinationEntry>& splitted_dsts, uint64_t& dust);
-  bool checkIfEnoughMixins(const std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount>& outs, uint64_t mixIn);
+  bool checkIfEnoughMixins(const std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::outs_for_amount>& outs, uint16_t mixIn);
   void relayTransactionCallback(std::shared_ptr<SendTransactionContext> context,
                                 std::deque<std::unique_ptr<WalletLegacyEvent>>& events,
                                 std::unique_ptr<WalletRequest>& nextRequest,

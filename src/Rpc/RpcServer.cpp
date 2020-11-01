@@ -1059,7 +1059,7 @@ bool RpcServer::f_on_transaction_json(const F_COMMAND_RPC_GET_TRANSACTION_DETAIL
   res.txDetails.amount_out = amount_out;
   res.txDetails.size = getObjectBinarySize(res.tx);
 
-  uint64_t mixin;
+  uint16_t mixin;
   if (!f_getMixin(res.tx, mixin)) {
     return false;
   }
@@ -1076,7 +1076,7 @@ bool RpcServer::f_on_transaction_json(const F_COMMAND_RPC_GET_TRANSACTION_DETAIL
   return true;
 }
 
-bool RpcServer::f_getMixin(const Transaction& transaction, uint64_t& mixin) {
+bool RpcServer::f_getMixin(const Transaction& transaction, uint16_t& mixin) {
   mixin = 0;
   for (const TransactionInput& txin : transaction.inputs) {
     if (txin.type() != typeid(KeyInput)) {

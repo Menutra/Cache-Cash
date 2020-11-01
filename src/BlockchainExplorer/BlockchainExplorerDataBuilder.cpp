@@ -23,13 +23,13 @@ core(core),
 protocol(protocol) {
 }
 
-bool BlockchainExplorerDataBuilder::getMixin(const Transaction& transaction, uint64_t& mixin) {
+bool BlockchainExplorerDataBuilder::getMixin(const Transaction& transaction, uint16_t& mixin) {
   mixin = 0;
   for (const TransactionInput& txin : transaction.inputs) {
     if (txin.type() != typeid(KeyInput)) {
       continue;
     }
-    uint64_t currentMixin = boost::get<KeyInput>(txin).outputIndexes.size();
+    uint16_t currentMixin = boost::get<KeyInput>(txin).outputIndexes.size();
     if (currentMixin > mixin) {
       mixin = currentMixin;
     }
@@ -225,7 +225,7 @@ bool BlockchainExplorerDataBuilder::fillTransactionDetails(const Transaction& tr
     transactionDetails.mixin = 0;
   } else {
     transactionDetails.fee = inputsAmount < transactionDetails.totalOutputsAmount ? CryptoNote::parameters::MINIMUM_FEE : core.currency().getTransactionFee(transaction, transactionDetails.blockHeight);
-    uint64_t mixin;
+    uint16_t mixin;
     if (!getMixin(transaction, mixin)) {
       return false;
     }
