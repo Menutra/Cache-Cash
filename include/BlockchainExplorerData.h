@@ -52,7 +52,7 @@ struct TransactionInputGenerateDetails {
 struct TransactionInputToKeyDetails {
   std::vector<uint32_t> outputIndexes;
   Crypto::KeyImage keyImage;
-  uint64_t mixin;
+  uint16_t mixin;
   TransactionOutputReferenceDetails output;
 };
 
@@ -83,7 +83,7 @@ struct TransactionDetails {
   uint64_t fee;
   uint64_t totalInputsAmount;
   uint64_t totalOutputsAmount;
-  uint64_t mixin;
+  uint16_t mixin;
   uint64_t unlockTime;
   uint64_t timestamp;
   Crypto::Hash paymentId;
