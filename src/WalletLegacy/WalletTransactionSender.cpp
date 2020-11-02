@@ -134,7 +134,7 @@ namespace
     return result;
   }
 
-  uint64_t checkDepositsAndCalculateAmount(const std::vector<DepositId> &depositIds, const WalletUserTransactionsCache &transactionsCache)
+  /* uint64_t checkDepositsAndCalculateAmount(const std::vector<DepositId> &depositIds, const WalletUserTransactionsCache &transactionsCache)
   {
     uint64_t amount = 0;
 
@@ -148,7 +148,7 @@ namespace
     }
 
     return amount;
-  }
+  } */
 
   void countDepositsTotalSumAndInterestSum(const std::vector<DepositId> &depositIds, WalletUserTransactionsCache &depositsCache,
                                            uint64_t &totalSum, uint64_t &interestsSum)
@@ -512,7 +512,6 @@ namespace CryptoNote
       deposit.term = context->depositTerm;
       deposit.creatingTransactionId = context->transactionId;
       deposit.spendingTransactionId = WALLET_LEGACY_INVALID_TRANSACTION_ID;
-      uint32_t height = transactionInfo.blockHeight;
       deposit.interest = m_currency.calculateInterest(deposit.amount, deposit.term);
       deposit.locked = true;
       DepositId depositId = m_transactionsCache.insertDeposit(deposit, depositIndex, transaction->getTransactionHash());
@@ -917,7 +916,8 @@ namespace CryptoNote
       Deposit deposit;
       bool r = m_transactionsCache.getDeposit(id, deposit);
       assert(r);
-
+      if (r) {}
+      
       foundMoney += deposit.amount + deposit.interest;
     }
 
