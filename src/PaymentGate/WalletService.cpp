@@ -99,7 +99,8 @@ namespace PaymentService
       Crypto::Hash paymentId;
       bool r = Common::podFromHex(paymentIdStr, paymentId);
       assert(r);
-
+      if (r) {}
+      
       return paymentId;
     }
 
@@ -1097,7 +1098,6 @@ namespace PaymentService
         spendingTransactionHash = Common::podToHex(walletstx.hash);
       }
 
-      bool state = true;
       uint32_t knownBlockCount = node.getKnownBlockCount();
       if (knownBlockCount > unlockHeight)
       {
@@ -1406,7 +1406,8 @@ namespace PaymentService
     const bool valid = CryptoNote::parseAccountAddressString(prefix,
                                                              addr,
                                                              address_str);
-
+    if (valid) {}
+    
     CryptoNote::BinaryArray ba;
     CryptoNote::toBinaryArray(addr, ba);
     std::string keys = Common::asString(ba);
@@ -1603,7 +1604,6 @@ namespace PaymentService
     {
       System::EventLock lk(readyEvent);
 
-      auto estimateResult = fusionManager.estimate(1000000, {});
       knownBlockCount = node.getKnownBlockCount();
       peerCount = static_cast<uint32_t>(node.getPeerCount());
       blockCount = wallet.getBlockCount();
