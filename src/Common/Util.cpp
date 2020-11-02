@@ -4,6 +4,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+//#pragma warning(disable : 4996)
+
 #include "Util.h"
 #include <cstdio>
 
@@ -18,7 +20,6 @@
 #else 
 #include <sys/utsname.h>
 #endif
-#pragma warning(disable : 4996)
 
 namespace Tools
 {
