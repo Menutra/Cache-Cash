@@ -481,7 +481,8 @@ bool wallet_rpc_server::on_create_integrated(const wallet_rpc::COMMAND_RPC_CREAT
     const bool valid = CryptoNote::parseAccountAddressString(prefix, 
                                                             addr,
                                                             address_str);
-
+    if (valid) {}
+	  
     CryptoNote::BinaryArray ba;
     CryptoNote::toBinaryArray(addr, ba);
     std::string keys = Common::asString(ba);
