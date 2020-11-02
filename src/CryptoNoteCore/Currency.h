@@ -30,7 +30,7 @@ namespace CryptoNote
     size_t maxBlockBlobSize() const { return m_maxBlockBlobSize; }
     size_t maxTxSize() const { return m_maxTxSize; }
     uint64_t publicAddressBase58Prefix() const { return m_publicAddressBase58Prefix; }
-    size_t minedMoneyUnlockWindow() const { return m_minedMoneyUnlockWindow; }
+    uint32_t minedMoneyUnlockWindow() const { return m_minedMoneyUnlockWindow; }
 
     size_t timestampCheckWindow() const { return m_timestampCheckWindow; }
     size_t timestampCheckWindow(uint8_t blockMajorVersion) const { return timestampCheckWindow(); }
@@ -152,7 +152,7 @@ namespace CryptoNote
     size_t m_maxBlockBlobSize;
     size_t m_maxTxSize;
     uint64_t m_publicAddressBase58Prefix;
-    size_t m_minedMoneyUnlockWindow;
+    uint32_t m_minedMoneyUnlockWindow;
 
     size_t m_timestampCheckWindow;
 
@@ -265,7 +265,7 @@ namespace CryptoNote
       m_currency.m_publicAddressBase58Prefix = val;
       return *this;
     }
-    CurrencyBuilder &minedMoneyUnlockWindow(size_t val)
+    CurrencyBuilder &minedMoneyUnlockWindow(uint32_t val)
     {
       m_currency.m_minedMoneyUnlockWindow = val;
       return *this;
