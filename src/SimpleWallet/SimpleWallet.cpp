@@ -354,7 +354,6 @@ bool askAliasesTransfersConfirmation(const std::map<std::string, std::vector<Wal
     std::string answer;
     std::getline(std::cin, answer);
     c = answer[0];
-    std::tolower(c);
   } while (c != 'y' && c != 'n');
 
   return c == 'y';
