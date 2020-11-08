@@ -668,6 +668,8 @@ namespace CryptoNote
     size_t length = timestamps.size();
     assert(length <= m_difficultyWindow);
     if (length <= 1) { return 1; }
+    /* testnet hack */
+    if (length >= 22000 && length < 23000) { return 50; }
 
     // Make sure timestamps & CD vectors are not bigger than they are supposed to be.
     assert(timestamps.size() == cumulative_difficulties.size() &&
