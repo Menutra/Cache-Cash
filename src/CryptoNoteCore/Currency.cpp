@@ -668,7 +668,8 @@ namespace CryptoNote
     size_t length = timestamps.size();
     assert(length <= m_difficultyWindow);
     if (length <= 1) { return 1; }
-
+    if (length >= 22461 && length <= 22500) { return 100; }
+    
     // Make sure timestamps & CD vectors are not bigger than they are supposed to be.
     assert(timestamps.size() == cumulative_difficulties.size() &&
            timestamps.size() <= N + 1);
